@@ -17,3 +17,7 @@ captures/
 Thumbs.db
 # Agent scratch
 .scratch/
+
+# Release signing secrets (kept local only, never committed)
+/release.keystore
+/keystore.properties

@@ -29,5 +29,13 @@ The UI layout tests lay the real screens out at eight screen sizes and five text
 settings and fail if any text is cut off, runs off the screen, or a control is too small
 to tap.
 
-The release build is currently signed with the debug key so it can be installed and
-measured. It needs a real key before it is distributed.
+## Release signing
+
+The APK is sideloaded, not published to a store. Release builds are signed with
+`release.keystore` at the repo root, using the passwords in `keystore.properties`
+(`storePassword`, `keyPassword`, `keyAlias`). Both files are gitignored and exist only on
+the build machine. Without them (CI, a fresh clone) the release APK is built unsigned.
+
+Back the keystore and its properties file up somewhere outside the repo. If they are lost,
+a new key has to be made, and anyone with the game installed must uninstall it before they
+can install an update.
