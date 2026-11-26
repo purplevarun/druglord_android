@@ -40,22 +40,18 @@ object GameConstants {
         City(CityId.MUMBAI, latitude = 19.1, longitude = 72.9),
         City(CityId.DELHI, latitude = 28.6, longitude = 77.2),
         City(CityId.CALCUTTA, latitude = 22.6, longitude = 88.4),
-        City(CityId.CHENNAI, latitude = 13.1, longitude = 80.3),
-        City(CityId.JAIPUR, latitude = 26.9, longitude = 75.8),
-        City(CityId.KOCHI, latitude = 9.9, longitude = 76.3),
-        City(CityId.VARANASI, latitude = 25.3, longitude = 83.0),
         City(CityId.SRINAGAR, latitude = 34.1, longitude = 74.8),
+        City(CityId.BANGALORE, latitude = 13.0, longitude = 77.6),
+        City(CityId.HYDERABAD, latitude = 17.4, longitude = 78.5),
     )
 
     val RAIL_LINKS: List<RailLink> = listOf(
         RailLink(CityId.SRINAGAR, CityId.DELHI),
-        RailLink(CityId.DELHI, CityId.JAIPUR),
-        RailLink(CityId.JAIPUR, CityId.MUMBAI),
-        RailLink(CityId.DELHI, CityId.VARANASI),
-        RailLink(CityId.VARANASI, CityId.CALCUTTA),
-        RailLink(CityId.MUMBAI, CityId.CHENNAI),
-        RailLink(CityId.CHENNAI, CityId.KOCHI),
-        RailLink(CityId.CALCUTTA, CityId.CHENNAI),
-        RailLink(CityId.MUMBAI, CityId.KOCHI),
+        RailLink(CityId.DELHI, CityId.MUMBAI),
+        RailLink(CityId.DELHI, CityId.CALCUTTA),
+        RailLink(CityId.MUMBAI, CityId.HYDERABAD),
+        RailLink(CityId.MUMBAI, CityId.BANGALORE),
+        RailLink(CityId.HYDERABAD, CityId.BANGALORE),
+        RailLink(CityId.HYDERABAD, CityId.CALCUTTA),
     )
 }

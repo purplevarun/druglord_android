@@ -7,31 +7,35 @@ class RailNetworkTest {
 
     @Test
     fun `neighbouring cities are one day apart`() {
-        assertEquals(1, RailNetwork.travelDays(CityId.MUMBAI, CityId.CHENNAI))
+        assertEquals(1, RailNetwork.travelDays(CityId.MUMBAI, CityId.BANGALORE))
     }
 
     @Test
     fun `a trip with one change takes two days`() {
-        assertEquals(2, RailNetwork.travelDays(CityId.MUMBAI, CityId.CALCUTTA))
+        assertEquals(2, RailNetwork.travelDays(CityId.BANGALORE, CityId.CALCUTTA))
     }
 
     @Test
     fun `the route lists every city passed through in order`() {
         assertEquals(
-            listOf(CityId.MUMBAI, CityId.CHENNAI, CityId.CALCUTTA),
-            RailNetwork.route(CityId.MUMBAI, CityId.CALCUTTA),
+            listOf(CityId.BANGALORE, CityId.HYDERABAD, CityId.CALCUTTA),
+            RailNetwork.route(CityId.BANGALORE, CityId.CALCUTTA),
+        )
+        assertEquals(
+            listOf(CityId.BANGALORE, CityId.MUMBAI, CityId.DELHI, CityId.SRINAGAR),
+            RailNetwork.route(CityId.BANGALORE, CityId.SRINAGAR),
         )
     }
 
     @Test
-    fun `the far corners of the map are four days apart`() {
-        assertEquals(4, RailNetwork.travelDays(CityId.KOCHI, CityId.SRINAGAR))
+    fun `the far ends of the map are three days apart`() {
+        assertEquals(3, RailNetwork.travelDays(CityId.BANGALORE, CityId.SRINAGAR))
     }
 
     @Test
     fun `a trip takes as long in either direction`() {
-        assertEquals(3, RailNetwork.travelDays(CityId.MUMBAI, CityId.SRINAGAR))
-        assertEquals(3, RailNetwork.travelDays(CityId.SRINAGAR, CityId.MUMBAI))
+        assertEquals(3, RailNetwork.travelDays(CityId.HYDERABAD, CityId.SRINAGAR))
+        assertEquals(3, RailNetwork.travelDays(CityId.SRINAGAR, CityId.HYDERABAD))
     }
 
     @Test
@@ -49,5 +53,16 @@ class RailNetworkTest {
                 assertEquals("route $from to $to ends at the destination", to, route.last())
             }
         }
+    }
+
+    @Test
+    fun `the map has exactly the six agreed cities`() {
+        assertEquals(
+            setOf(
+                CityId.MUMBAI, CityId.DELHI, CityId.CALCUTTA,
+                CityId.SRINAGAR, CityId.BANGALORE, CityId.HYDERABAD,
+            ),
+            GameConstants.CITIES.map { it.id }.toSet(),
+        )
     }
 }

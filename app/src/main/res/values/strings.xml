@@ -15,11 +15,9 @@
     <string name="city_mumbai">Mumbai</string>
     <string name="city_delhi">Delhi</string>
     <string name="city_calcutta">Calcutta</string>
-    <string name="city_chennai">Chennai</string>
-    <string name="city_jaipur">Jaipur</string>
-    <string name="city_kochi">Kochi</string>
-    <string name="city_varanasi">Varanasi</string>
     <string name="city_srinagar">Srinagar</string>
+    <string name="city_bangalore">Bangalore</string>
+    <string name="city_hyderabad">Hyderabad</string>
 
     <string-array name="month_abbreviations">
         <item>Jan</item>

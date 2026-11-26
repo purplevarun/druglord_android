@@ -2,7 +2,7 @@ package com.purplevarun.trader.engine
 
 enum class GoodId { ONIONS, COTTON, BASMATI, CHAI, MASALA, SILK_SAREES, KESAR, GOLD }
 
-enum class CityId { MUMBAI, DELHI, CALCUTTA, CHENNAI, JAIPUR, KOCHI, VARANASI, SRINAGAR }
+enum class CityId { MUMBAI, DELHI, CALCUTTA, SRINAGAR, BANGALORE, HYDERABAD }
 
 enum class TradeUnit { QUINTAL, BUNDLE_OF_TEN, KILOGRAM, HUNDRED_GRAMS }
 

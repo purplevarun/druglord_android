@@ -66,8 +66,8 @@ fun RailMap(currentCity: CityId, modifier: Modifier = Modifier) {
                 val (x, y) = when (MapGeometry.LABEL_SIDE.getValue(id)) {
                     MapGeometry.LabelSide.END -> dot.x + gap to dot.y - label.height / 2f
                     MapGeometry.LabelSide.START -> dot.x - gap - label.width to dot.y - label.height / 2f
-                    MapGeometry.LabelSide.ABOVE -> dot.x - label.width / 2f to dot.y - gap - label.height
                     MapGeometry.LabelSide.ABOVE_END -> dot.x + gap / 2 to dot.y - gap / 2 - label.height
+                    MapGeometry.LabelSide.BELOW_END -> dot.x + gap / 2 to dot.y + gap / 2
                 }
                 // A name never leaves the map, however narrow the screen or large the text.
                 label.place(

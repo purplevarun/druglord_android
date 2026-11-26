@@ -18,18 +18,16 @@ object MapGeometry {
     /** Width over height. A degree of longitude is shorter than a degree of latitude at these latitudes. */
     const val ASPECT_RATIO = 0.92f
 
-    enum class LabelSide { START, END, ABOVE, ABOVE_END }
+    enum class LabelSide { START, END, ABOVE_END, BELOW_END }
 
     /** Which side of its dot each city's name sits on, chosen so names stay clear of the rail lines. */
     val LABEL_SIDE: Map<CityId, LabelSide> = mapOf(
-        CityId.MUMBAI to LabelSide.END,
+        CityId.MUMBAI to LabelSide.START,
         CityId.DELHI to LabelSide.ABOVE_END,
         CityId.CALCUTTA to LabelSide.END,
-        CityId.CHENNAI to LabelSide.END,
-        CityId.JAIPUR to LabelSide.START,
-        CityId.KOCHI to LabelSide.START,
-        CityId.VARANASI to LabelSide.ABOVE,
         CityId.SRINAGAR to LabelSide.END,
+        CityId.BANGALORE to LabelSide.END,
+        CityId.HYDERABAD to LabelSide.BELOW_END,
     )
 
     /** A simplified outline of India as longitude to latitude, clockwise from the north. */
