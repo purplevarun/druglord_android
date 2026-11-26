@@ -10,6 +10,8 @@ device; trading, travel and events are not built yet. UI mockups live on the
 
 - No ads, no analytics, no permissions at all.
 - Kotlin and Jetpack Compose, with no image assets.
+- Headings and amounts use the bundled Gelasio font (SIL Open Font License, see
+  `licenses/Gelasio-OFL.txt`); small text uses the phone's own sans-serif.
 
 ## Layout
 

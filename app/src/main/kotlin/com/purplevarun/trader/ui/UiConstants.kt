@@ -1,12 +1,16 @@
 package com.purplevarun.trader.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.purplevarun.trader.R
 
 /** Every colour, size and text style in the UI lives in this file. */
 object UiColors {
@@ -60,7 +64,22 @@ object UiDimens {
  * scales with the text.
  */
 object UiType {
-    private val Display = FontFamily.Serif
+    /**
+     * Gelasio, bundled so headings and amounts look the same on every phone. It is one
+     * variable font file, so each weight must be selected from it explicitly: declaring a
+     * weight alone leaves the file at its default (regular). Licence: licenses/Gelasio-OFL.txt.
+     */
+    private val Display = FontFamily(
+        gelasio(FontWeight.Normal),
+        gelasio(FontWeight.Bold),
+    )
+
+    @OptIn(ExperimentalTextApi::class)
+    private fun gelasio(weight: FontWeight) = Font(
+        resId = R.font.gelasio,
+        weight = weight,
+        variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+    )
     private val Interface = FontFamily.SansSerif
 
     /** Fixed-width digits, so amounts line up and do not jitter as they change. */
