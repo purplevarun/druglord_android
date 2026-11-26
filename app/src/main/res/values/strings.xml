@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- All on-screen text. Names are placeholders until the naming pass. -->
+<resources>
+    <string name="app_name">Train Trader</string>
+
+    <string name="net_worth_label">Net worth · %1$s</string>
+    <string name="date_format">%1$d %2$s %3$d</string>
+    <string name="day_of_run">Day %1$d of %2$d</string>
+    <string name="cash_and_debt">Cash %1$s · Debt %2$s</string>
+
+    <string name="market_title">%1$s mandi</string>
+    <string name="market_hint">%1$d goods · swipe up to trade · tap a city to travel</string>
+    <string name="open_market">Open the market</string>
+
+    <string name="city_mumbai">Mumbai</string>
+    <string name="city_delhi">Delhi</string>
+    <string name="city_calcutta">Calcutta</string>
+    <string name="city_chennai">Chennai</string>
+    <string name="city_jaipur">Jaipur</string>
+    <string name="city_kochi">Kochi</string>
+    <string name="city_varanasi">Varanasi</string>
+    <string name="city_srinagar">Srinagar</string>
+
+    <string-array name="month_abbreviations">
+        <item>Jan</item>
+        <item>Feb</item>
+        <item>Mar</item>
+        <item>Apr</item>
+        <item>May</item>
+        <item>Jun</item>
+        <item>Jul</item>
+        <item>Aug</item>
+        <item>Sep</item>
+        <item>Oct</item>
+        <item>Nov</item>
+        <item>Dec</item>
+    </string-array>
+</resources>

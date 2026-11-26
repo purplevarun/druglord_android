@@ -43,6 +43,13 @@ android {
     }
 }
 
+// The UI tests need the debug-only test activity, so unit tests run against debug only.
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variant ->
+        (variant as com.android.build.api.variant.HasUnitTestBuilder).enableUnitTest = false
+    }
+}
+
 kotlin {
     jvmToolchain(17)
 }
