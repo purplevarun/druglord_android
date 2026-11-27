@@ -33,3 +33,16 @@ data class GameDate(val day: Int, val month: Int, val year: Int)
  * resources keyed by these ids; the names are placeholders until the naming pass.
  */
 enum class RankId { DIVALA, THELAWALA, DUKANDAAR, SAUDAGAR, SETH, CROREPATI }
+
+/**
+ * What the trader hauls their goods in. Display names are Android string resources keyed by
+ * these ids. Each bigger transport is a strict upgrade: more slots for more money.
+ */
+enum class TransportId { JHOLA, TRUNK, TEMPO, TRUCK }
+
+data class Transport(
+    val id: TransportId,
+    /** How many units of goods it holds. */
+    val capacity: Int,
+    val priceRupees: Long,
+)

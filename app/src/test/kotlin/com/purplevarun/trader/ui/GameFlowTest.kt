@@ -256,4 +256,106 @@ class GameFlowTest {
         compose.onNodeWithTag(TestTags.END_SCREEN).assertExists()
         compose.onNodeWithText("1 days on the rails").assertExists()
     }
+
+    @Test
+    fun `the places panel opens each sheet and the sheets close again`() {
+        start()
+
+        compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
+        compose.onNodeWithTag(TestTags.SAHUKAR_SHEET).assertExists()
+        compose.onNodeWithText("Close").performClick()
+
+        compose.onNodeWithTag(TestTags.PLACE_BANK).performClick()
+        compose.onNodeWithTag(TestTags.BANK_SHEET).assertExists()
+        compose.onNodeWithText("Close").performClick()
+
+        compose.onNodeWithTag(TestTags.PLACE_LUGGAGE).performClick()
+        compose.onNodeWithTag(TestTags.LUGGAGE_SHEET).assertExists()
+        compose.onNodeWithText("Close").performClick()
+
+        compose.onNodeWithTag(TestTags.MARKET_DRAWER).assertExists()
+    }
+
+    @Test
+    fun `borrowing fills your pocket and your debt`() {
+        start()
+        compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
+
+        compose.onNodeWithTag(TestTags.borrow(1_000)).performClick()
+
+        compose.onNodeWithText("You owe ₹6,000").assertExists()
+        compose.onNodeWithText("Cash ₹11,000 · Debt ₹6,000").assertExists()
+    }
+
+    @Test
+    fun `the sahukar only takes back what is owed and what is held`() {
+        start()
+        compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
+
+        // Repaying more than the debt is refused, though the cash is there.
+        compose.onNodeWithTag(TestTags.repay(10_000)).assertIsNotEnabled()
+
+        compose.onNodeWithTag(TestTags.REPAY_ALL).performClick()
+
+        compose.onNodeWithText("You owe nothing.").assertExists()
+        compose.onNodeWithText("Cash ₹5,000").assertExists()
+    }
+
+    @Test
+    fun `the bank keeps your savings and gives them back`() {
+        start()
+        compose.onNodeWithTag(TestTags.PLACE_BANK).performClick()
+
+        compose.onNodeWithTag(TestTags.withdraw(1_000)).assertIsNotEnabled()
+        compose.onNodeWithTag(TestTags.deposit(1_000)).performClick()
+
+        compose.onNodeWithText("In the bank ₹1,000").assertExists()
+        compose.onNodeWithText("Cash ₹9,000").assertExists()
+
+        compose.onNodeWithTag(TestTags.WITHDRAW_ALL).performClick()
+
+        compose.onNodeWithText("Nothing in the bank.").assertExists()
+        compose.onNodeWithText("Cash ₹10,000").assertExists()
+    }
+
+    @Test
+    fun `the train grows your debt and your savings`() {
+        start()
+
+        compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
+        compose.onNodeWithTag(TestTags.borrow(10_000)).performClick()
+        compose.onNodeWithText("Close").performClick()
+
+        compose.onNodeWithTag(TestTags.PLACE_BANK).performClick()
+        compose.onNodeWithTag(TestTags.deposit(10_000)).performClick()
+        compose.onNodeWithText("Close").performClick()
+
+        tapCity(CityId.DELHI)
+        compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+
+        // One day on the rails: the sahukar's 8% and the bank's 1%.
+        compose.onNodeWithText("Cash ₹10,000 · Debt ₹16,200").assertExists()
+        compose.onNodeWithTag(TestTags.PLACE_BANK).performClick()
+        compose.onNodeWithText("In the bank ₹10,100").assertExists()
+    }
+
+    @Test
+    fun `a bigger transport costs its price and holds more goods`() {
+        start()
+        compose.onNodeWithTag(TestTags.PLACE_LUGGAGE).performClick()
+
+        compose.onNodeWithText("Jhola · 0 of 100 filled").assertExists()
+        compose.onNodeWithTag(TestTags.buyTransport(com.purplevarun.trader.engine.TransportId.TRUCK))
+            .assertIsNotEnabled()
+
+        compose.onNodeWithTag(TestTags.buyTransport(com.purplevarun.trader.engine.TransportId.TRUNK))
+            .performClick()
+
+        compose.onNodeWithText("Trunk · 0 of 250 filled").assertExists()
+        compose.onNodeWithText("Cash ₹6,000 · Debt ₹5,000").assertExists()
+
+        compose.onNodeWithText("Close").performClick()
+        openMarket()
+        compose.onNodeWithText("Luggage 0/250").assertExists()
+    }
 }

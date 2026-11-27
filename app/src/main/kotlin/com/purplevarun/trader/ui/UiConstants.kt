@@ -97,6 +97,18 @@ object UiDimens {
     val RankGap = 2.dp
     val EndScreenGap = 8.dp
 
+    /** The places chips in the drawer and the amount chips in the facility sheets. */
+    val ChipGap = 8.dp
+    val ChipBorder = 1.dp
+    val ChipPaddingHorizontal = 14.dp
+    val ChipPaddingVertical = 8.dp
+    val PlacesGapTop = 12.dp
+    val PlaceChipLineGap = 0.dp
+    val UpgradeRowGap = 8.dp
+
+    /** The places chips scroll inside at most this share of the screen, so the drawer can never outgrow it. */
+    const val PLACES_HEIGHT_FRACTION = 0.30f
+
     /** The travel sheet never covers more than this share of the screen; its text scrolls inside. */
     const val SHEET_MAX_HEIGHT_FRACTION = 0.85f
 }
@@ -234,6 +246,8 @@ object UiType {
         textAlign = TextAlign.Center,
     )
     val Link = Button.copy(color = UiColors.Accent)
+    val ChipLabel = Price
+    val PlaceName = Small.copy(color = UiColors.Ink, fontWeight = FontWeight.SemiBold)
 }
 
 object TestTags {
@@ -254,7 +268,21 @@ object TestTags {
     const val RUN_LENGTH_ENDLESS = "runLengthEndless"
     const val END_SCREEN = "endScreen"
     const val NEW_RUN = "newRun"
+    const val PLACE_SAHUKAR = "placeSahukar"
+    const val PLACE_BANK = "placeBank"
+    const val PLACE_LUGGAGE = "placeLuggage"
+    const val SAHUKAR_SHEET = "sahukarSheet"
+    const val BANK_SHEET = "bankSheet"
+    const val LUGGAGE_SHEET = "luggageSheet"
+    const val REPAY_ALL = "repayAll"
+    const val DEPOSIT_ALL = "depositAll"
+    const val WITHDRAW_ALL = "withdrawAll"
 
     fun cityLabel(city: com.purplevarun.trader.engine.CityId) = "city_${city.name}"
     fun runLength(days: Int) = "runLength_$days"
+    fun borrow(amountRupees: Long) = "borrow_$amountRupees"
+    fun repay(amountRupees: Long) = "repay_$amountRupees"
+    fun deposit(amountRupees: Long) = "deposit_$amountRupees"
+    fun withdraw(amountRupees: Long) = "withdraw_$amountRupees"
+    fun buyTransport(id: com.purplevarun.trader.engine.TransportId) = "buyTransport_${id.name}"
 }

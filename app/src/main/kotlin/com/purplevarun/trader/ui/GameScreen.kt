@@ -21,6 +21,7 @@ import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.Outcome
 import com.purplevarun.trader.engine.RailNetwork
 import com.purplevarun.trader.engine.RunState
+import com.purplevarun.trader.engine.TransportId
 
 /** Where the game is: picking a new run, mid-run, or looking at how a run ended. */
 sealed interface Phase {
@@ -33,6 +34,9 @@ sealed interface Phase {
 sealed interface Overlay {
     data object None : Overlay
     data object Market : Overlay
+    data object Sahukar : Overlay
+    data object Bank : Overlay
+    data object Luggage : Overlay
     data object EndRun : Overlay
     data class Travel(val to: CityId) : Overlay
 }
@@ -116,6 +120,7 @@ fun GameScreenContent(
                         onCityTap = { city ->
                             onOverlayChange(if (city == run.city) Overlay.Market else Overlay.Travel(city))
                         },
+                        onOpenPlace = { onOverlayChange(it) },
                         onEndRun = { onOverlayChange(Overlay.EndRun) },
                     )
                 }
@@ -127,6 +132,21 @@ fun GameScreenContent(
                             onAction(Action.Travel(overlay.to))
                             onOverlayChange(Overlay.None)
                         },
+                        onDismiss = { onOverlayChange(Overlay.None) },
+                    )
+                    Overlay.Sahukar -> SahukarSheet(
+                        state = run,
+                        onAction = onAction,
+                        onDismiss = { onOverlayChange(Overlay.None) },
+                    )
+                    Overlay.Bank -> BankSheet(
+                        state = run,
+                        onAction = onAction,
+                        onDismiss = { onOverlayChange(Overlay.None) },
+                    )
+                    Overlay.Luggage -> LuggageSheet(
+                        state = run,
+                        onAction = onAction,
                         onDismiss = { onOverlayChange(Overlay.None) },
                     )
                     Overlay.EndRun -> EndRunSheet(
@@ -144,7 +164,7 @@ fun GameScreenContent(
 private const val PHASE_NEW_RUN = "newRun"
 private const val PHASE_PLAYING = "playing"
 private const val PHASE_ENDED = "ended"
-private const val SAVED_FIELDS_BEFORE_HOLDINGS = 7
+private const val SAVED_FIELDS_BEFORE_HOLDINGS = 8
 
 private val PhaseSaver = listSaver<Phase, Any>(
     save = { phase ->
@@ -171,12 +191,18 @@ private const val TRAVEL_PREFIX = "travel:"
 private fun overlayToString(overlay: Overlay): String = when (overlay) {
     Overlay.None -> "none"
     Overlay.Market -> "market"
+    Overlay.Sahukar -> "sahukar"
+    Overlay.Bank -> "bank"
+    Overlay.Luggage -> "luggage"
     Overlay.EndRun -> "endRun"
     is Overlay.Travel -> TRAVEL_PREFIX + overlay.to.name
 }
 
 private fun stringToOverlay(saved: String): Overlay = when {
     saved == "market" -> Overlay.Market
+    saved == "sahukar" -> Overlay.Sahukar
+    saved == "bank" -> Overlay.Bank
+    saved == "luggage" -> Overlay.Luggage
     saved == "endRun" -> Overlay.EndRun
     saved.startsWith(TRAVEL_PREFIX) -> Overlay.Travel(CityId.valueOf(saved.removePrefix(TRAVEL_PREFIX)))
     else -> Overlay.None
@@ -184,7 +210,7 @@ private fun stringToOverlay(saved: String): Overlay = when {
 
 private fun runToFields(run: RunState): List<Any> = listOf<Any>(
     run.seed, run.day, run.runLengthDays, run.city.name,
-    run.cashRupees, run.debtRupees, run.luggageCapacity,
+    run.cashRupees, run.debtRupees, run.bankRupees, run.transport.name,
 ) + GoodId.entries.map { run.held(it) }
 
 private fun fieldsToRun(saved: List<Any>): RunState = RunState(
@@ -194,7 +220,8 @@ private fun fieldsToRun(saved: List<Any>): RunState = RunState(
     city = CityId.valueOf(saved[3] as String),
     cashRupees = saved[4] as Long,
     debtRupees = saved[5] as Long,
-    luggageCapacity = saved[6] as Int,
+    bankRupees = saved[6] as Long,
+    transport = TransportId.valueOf(saved[7] as String),
     holdings = GoodId.entries
         .mapIndexed { index, good -> good to saved[SAVED_FIELDS_BEFORE_HOLDINGS + index] as Int }
         .filter { (_, quantity) -> quantity > 0 }

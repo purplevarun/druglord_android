@@ -6,6 +6,7 @@ import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.RankId
 import com.purplevarun.trader.engine.RunState
+import com.purplevarun.trader.engine.TransportId
 
 /** One finished run that earned a place on the best-runs list, with the rank it earned then. */
 data class BestRun(
@@ -18,6 +19,7 @@ data class BestRun(
 /**
  * The run in progress and the best-runs list, kept in SharedPreferences so both survive
  * the app being closed. No libraries: the file format is hand-rolled and versioned.
+ * Format 1 predates the facilities: a run saved then loads with no savings and a jhola.
  */
 class RunStore(context: Context) {
 
@@ -25,7 +27,8 @@ class RunStore(context: Context) {
 
     /** The run last saved, or null when none was saved or the file is not understood. */
     fun loadRun(): RunState? = runCatching {
-        if (prefs.getInt(KEY_VERSION, 0) != FORMAT_VERSION) return null
+        val version = prefs.getInt(KEY_VERSION, 0)
+        if (version < 1 || version > FORMAT_VERSION) return null
         if (!prefs.getBoolean(KEY_RUN_PRESENT, false)) return null
         RunState(
             seed = prefs.getLong(KEY_RUN_SEED, 0),
@@ -34,7 +37,10 @@ class RunStore(context: Context) {
             city = CityId.valueOf(prefs.getString(KEY_RUN_CITY, null)!!),
             cashRupees = prefs.getLong(KEY_RUN_CASH, 0),
             debtRupees = prefs.getLong(KEY_RUN_DEBT, 0),
-            luggageCapacity = prefs.getInt(KEY_RUN_CAPACITY, 0),
+            bankRupees = prefs.getLong(KEY_RUN_BANK, 0),
+            transport = prefs.getString(KEY_RUN_TRANSPORT, null)
+                ?.let { TransportId.valueOf(it) }
+                ?: GameConstants.STARTING_TRANSPORT,
             holdings = holdingsFromString(prefs.getString(KEY_RUN_HOLDINGS, "")!!),
         )
     }.getOrNull()
@@ -49,7 +55,8 @@ class RunStore(context: Context) {
             .putString(KEY_RUN_CITY, run.city.name)
             .putLong(KEY_RUN_CASH, run.cashRupees)
             .putLong(KEY_RUN_DEBT, run.debtRupees)
-            .putInt(KEY_RUN_CAPACITY, run.luggageCapacity)
+            .putLong(KEY_RUN_BANK, run.bankRupees)
+            .putString(KEY_RUN_TRANSPORT, run.transport.name)
             .putString(KEY_RUN_HOLDINGS, holdingsToString(run.holdings))
             .apply()
     }
@@ -103,7 +110,7 @@ class RunStore(context: Context) {
     companion object {
         const val MAX_BEST_RUNS = 5
         private const val PREFS_NAME = "runs"
-        private const val FORMAT_VERSION = 1
+        private const val FORMAT_VERSION = 2
         private const val KEY_VERSION = "version"
         private const val KEY_RUN_PRESENT = "run.present"
         private const val KEY_RUN_SEED = "run.seed"
@@ -112,7 +119,8 @@ class RunStore(context: Context) {
         private const val KEY_RUN_CITY = "run.city"
         private const val KEY_RUN_CASH = "run.cash"
         private const val KEY_RUN_DEBT = "run.debt"
-        private const val KEY_RUN_CAPACITY = "run.capacity"
+        private const val KEY_RUN_BANK = "run.bank"
+        private const val KEY_RUN_TRANSPORT = "run.transport"
         private const val KEY_RUN_HOLDINGS = "run.holdings"
         private const val KEY_BEST_COUNT = "best.count"
         private const val KEY_BEST_NET = "best.net"

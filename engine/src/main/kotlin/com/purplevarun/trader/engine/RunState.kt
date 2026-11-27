@@ -8,7 +8,8 @@ data class RunState(
     val city: CityId,
     val cashRupees: Long,
     val debtRupees: Long,
-    val luggageCapacity: Int,
+    val bankRupees: Long,
+    val transport: TransportId,
     /** Only goods actually carried are listed, each with a quantity of at least one. */
     val holdings: Map<GoodId, Int>,
 ) {
@@ -20,6 +21,8 @@ data class RunState(
     /** True on the last day of a finite run: trading still works, and the run can be finished. */
     val isOnLastDay: Boolean get() = !isEndless && daysLeft <= 0
 
+    val luggageCapacity: Int get() = GameConstants.transport(transport).capacity
+
     val luggageUsed: Int get() = holdings.values.sum()
 
     fun held(good: GoodId): Int = holdings[good] ?: 0
@@ -28,9 +31,9 @@ data class RunState(
 
     fun changePercentOf(good: GoodId): Int = Market.changePercent(seed, day, city, good)
 
-    /** Cash, plus everything carried at today's local price, less debt. */
+    /** Cash, plus savings and everything carried at today's local price, less debt. */
     val netWorthRupees: Long
-        get() = cashRupees + holdings.entries.sumOf { (good, quantity) -> quantity * priceOf(good) } - debtRupees
+        get() = cashRupees + bankRupees + holdings.entries.sumOf { (good, quantity) -> quantity * priceOf(good) } - debtRupees
 
     /** The title this run earns if it ended now. */
     val rank: RankId
@@ -51,7 +54,8 @@ data class RunState(
             city = GameConstants.STARTING_CITY,
             cashRupees = GameConstants.STARTING_CASH_RUPEES,
             debtRupees = GameConstants.STARTING_DEBT_RUPEES,
-            luggageCapacity = GameConstants.LUGGAGE_CAPACITY,
+            bankRupees = 0,
+            transport = GameConstants.STARTING_TRANSPORT,
             holdings = emptyMap(),
         )
     }

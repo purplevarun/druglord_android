@@ -10,6 +10,7 @@ import com.purplevarun.trader.engine.GameCalendar
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.RankId
 import com.purplevarun.trader.engine.TradeUnit
+import com.purplevarun.trader.engine.TransportId
 
 @StringRes
 fun cityNameRes(id: CityId): Int = when (id) {
@@ -49,6 +50,14 @@ fun rankNameRes(id: RankId): Int = when (id) {
     RankId.SAUDAGAR -> R.string.rank_saudagar
     RankId.SETH -> R.string.rank_seth
     RankId.CROREPATI -> R.string.rank_crorepati
+}
+
+@StringRes
+fun transportNameRes(id: TransportId): Int = when (id) {
+    TransportId.JHOLA -> R.string.transport_jhola
+    TransportId.TRUNK -> R.string.transport_trunk
+    TransportId.TEMPO -> R.string.transport_tempo
+    TransportId.TRUCK -> R.string.transport_truck
 }
 
 /** The calendar date of a day of the run, such as "12 Jan 2000". */

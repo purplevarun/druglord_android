@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import com.purplevarun.trader.R
 import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.GameConstants
@@ -54,6 +55,7 @@ fun HomeScreen(
     onOpenMarket: () -> Unit,
     onCityTap: (CityId) -> Unit,
     onEndRun: () -> Unit,
+    onOpenPlace: (Overlay) -> Unit,
     modifier: Modifier = Modifier,
     route: List<CityId> = emptyList(),
 ) {
@@ -64,6 +66,7 @@ fun HomeScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         val sideBySide = maxWidth >= UiDimens.SideBySideMinWidth || maxWidth > maxHeight
+        val placesMaxHeight = maxHeight * UiDimens.PLACES_HEIGHT_FRACTION
         if (sideBySide) {
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -71,7 +74,7 @@ fun HomeScreen(
                         Header(state, onEndRun)
                     }
                     FinishBar(state, onEndRun)
-                    MarketDrawer(state.city, onOpenMarket)
+                    MarketDrawer(state, onOpenMarket, onOpenPlace, placesMaxHeight)
                 }
                 RailMap(state.city, onCityTap, Modifier.weight(1f).fillMaxHeight(), route)
             }
@@ -87,7 +90,7 @@ fun HomeScreen(
                     )
                 }
                 FinishBar(state, onEndRun)
-                MarketDrawer(state.city, onOpenMarket)
+                MarketDrawer(state, onOpenMarket, onOpenPlace, placesMaxHeight)
             }
         }
     }
@@ -197,21 +200,26 @@ private fun RunProgress(fraction: Float) {
     }
 }
 
+/**
+ * The drawer pinned to the bottom of the home screen: the city's mandi up top, and below
+ * it the places every city has — the sahukar, the bank and the luggage shop — each a chip
+ * that opens its own sheet.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MarketDrawer(city: CityId, onOpen: () -> Unit) {
+private fun MarketDrawer(
+    state: RunState,
+    onOpen: () -> Unit,
+    onOpenPlace: (Overlay) -> Unit,
+    placesMaxHeight: Dp,
+) {
     val shape = RoundedCornerShape(topStart = UiDimens.DrawerCorner, topEnd = UiDimens.DrawerCorner)
     Column(
         Modifier
             .fillMaxWidth()
-            .testTag(TestTags.MARKET_DRAWER)
             .clip(shape)
             .background(UiColors.Panel)
             .border(UiDimens.DrawerBorder, UiColors.Line, shape)
-            .clickable(
-                onClickLabel = stringResource(R.string.open_market),
-                role = Role.Button,
-                onClick = onOpen,
-            )
             .heightIn(min = UiDimens.MinTouchTarget)
             .padding(horizontal = UiDimens.ScreenPadding)
             .padding(top = UiDimens.DrawerPaddingTop, bottom = UiDimens.DrawerPaddingBottom),
@@ -224,13 +232,90 @@ private fun MarketDrawer(city: CityId, onOpen: () -> Unit) {
                 .background(UiColors.Mute.copy(alpha = UiType.GRAB_HANDLE_ALPHA)),
         )
         Spacer(Modifier.height(UiDimens.GrabHandleGap))
-        BasicText(
-            text = stringResource(R.string.market_title, stringResource(cityNameRes(city))),
-            style = UiType.Title,
-        )
-        BasicText(
-            text = stringResource(R.string.market_hint, GameConstants.GOODS.size),
-            style = UiType.Body,
-        )
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .testTag(TestTags.MARKET_DRAWER)
+                .clip(RoundedCornerShape(UiDimens.ButtonCorner))
+                .clickable(
+                    onClickLabel = stringResource(R.string.open_market),
+                    role = Role.Button,
+                    onClick = onOpen,
+                )
+                .heightIn(min = UiDimens.MinTouchTarget),
+        ) {
+            BasicText(
+                text = stringResource(R.string.market_title, stringResource(cityNameRes(state.city))),
+                style = UiType.Title,
+            )
+            BasicText(
+                text = stringResource(R.string.market_hint, GameConstants.GOODS.size),
+                style = UiType.Body,
+            )
+        }
+        Spacer(Modifier.height(UiDimens.PlacesGapTop))
+        // Capped and scrolled inside, so a big text size can never push the drawer off screen.
+        FlowRow(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = placesMaxHeight)
+                .verticalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(UiDimens.ChipGap),
+            verticalArrangement = Arrangement.spacedBy(UiDimens.ChipGap),
+        ) {
+            PlaceChip(
+                name = stringResource(R.string.place_sahukar),
+                status = if (state.debtRupees > 0) {
+                    stringResource(R.string.owe_amount, formatRupees(state.debtRupees))
+                } else {
+                    stringResource(R.string.no_debt)
+                },
+                testTag = TestTags.PLACE_SAHUKAR,
+                onClick = { onOpenPlace(Overlay.Sahukar) },
+            )
+            PlaceChip(
+                name = stringResource(R.string.place_bank),
+                status = if (state.bankRupees > 0) {
+                    stringResource(R.string.saved_amount, formatRupees(state.bankRupees))
+                } else {
+                    stringResource(R.string.nothing_saved)
+                },
+                testTag = TestTags.PLACE_BANK,
+                onClick = { onOpenPlace(Overlay.Bank) },
+            )
+            PlaceChip(
+                name = stringResource(R.string.place_luggage),
+                status = stringResource(
+                    R.string.transport_and_capacity,
+                    stringResource(transportNameRes(state.transport)),
+                    state.luggageCapacity,
+                ),
+                testTag = TestTags.PLACE_LUGGAGE,
+                onClick = { onOpenPlace(Overlay.Luggage) },
+            )
+        }
+    }
+}
+
+/** One place in the drawer: its name and how you stand with it, small enough to sit in a row. */
+@Composable
+private fun PlaceChip(name: String, status: String, testTag: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(UiDimens.ButtonCorner)
+    Column(
+        Modifier
+            .heightIn(min = UiDimens.MinTouchTarget)
+            .clip(shape)
+            .background(UiColors.Paper)
+            .border(UiDimens.ChipBorder, UiColors.Line, shape)
+            .clickable(role = Role.Button, onClickLabel = name, onClick = onClick)
+            .padding(
+                horizontal = UiDimens.ChipPaddingHorizontal,
+                vertical = UiDimens.ChipPaddingVertical,
+            )
+            .testTag(testTag),
+    ) {
+        BasicText(name, style = UiType.PlaceName)
+        Spacer(Modifier.height(UiDimens.PlaceChipLineGap))
+        BasicText(status, style = UiType.Small)
     }
 }

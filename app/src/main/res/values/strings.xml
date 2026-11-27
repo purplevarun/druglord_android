@@ -25,6 +25,52 @@
     <string name="luggage">Luggage %1$d/%2$d</string>
     <string name="done">Done</string>
 
+    <!-- Places: the sahukar, the bank and the luggage shop -->
+    <string name="place_sahukar">Sahukar</string>
+    <string name="place_bank">Bank</string>
+    <string name="place_luggage">Luggage</string>
+    <string name="owe_amount">owe %1$s</string>
+    <string name="no_debt">no debt</string>
+    <string name="saved_amount">saved %1$s</string>
+    <string name="nothing_saved">nothing saved</string>
+    <string name="transport_and_capacity">%1$s · %2$d</string>
+
+    <!-- Money actions: a verb label beside one-tap amount chips -->
+    <string name="action_borrow">Borrow</string>
+    <string name="action_repay">Repay</string>
+    <string name="action_deposit">Deposit</string>
+    <string name="action_withdraw">Withdraw</string>
+    <string name="action_all">All</string>
+    <string name="action_buy">Buy</string>
+    <string name="cash_you_carry">Cash %1$s</string>
+    <string name="borrow_amount">Borrow %1$s</string>
+    <string name="repay_amount">Repay %1$s</string>
+    <string name="repay_all">Repay all (%1$s)</string>
+    <string name="deposit_amount">Deposit %1$s</string>
+    <string name="deposit_all">Deposit all (%1$s)</string>
+    <string name="withdraw_amount">Withdraw %1$s</string>
+    <string name="withdraw_all">Withdraw all (%1$s)</string>
+
+    <!-- Sahukar -->
+    <string name="sahukar_blurb">8% a day on what you owe, added for every day the train takes.</string>
+    <string name="you_owe">You owe %1$s</string>
+    <string name="you_owe_nothing">You owe nothing.</string>
+
+    <!-- Bank -->
+    <string name="bank_blurb">1% a day on your savings, every day on the rails. Pickpockets cannot reach it.</string>
+    <string name="in_the_bank">In the bank %1$s</string>
+    <string name="in_the_bank_nothing">Nothing in the bank.</string>
+
+    <!-- Luggage -->
+    <string name="carrying_now">%1$s · %2$d of %3$d filled</string>
+    <string name="upgrade_line">holds %1$d · %2$s</string>
+    <string name="buy_transport">Buy %1$s</string>
+    <string name="nothing_bigger">Nothing bigger to buy.</string>
+    <string name="transport_jhola">Jhola</string>
+    <string name="transport_trunk">Trunk</string>
+    <string name="transport_tempo">Tempo</string>
+    <string name="transport_truck">Truck</string>
+
     <!-- Travel -->
     <plurals name="trip_days">
         <item quantity="one">%1$d day by train</item>

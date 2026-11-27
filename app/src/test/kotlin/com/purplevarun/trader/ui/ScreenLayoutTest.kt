@@ -23,6 +23,7 @@ import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.RankId
 import com.purplevarun.trader.engine.RunState
+import com.purplevarun.trader.engine.TransportId
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -52,6 +53,9 @@ class ScreenLayoutTest(private val case: Case) {
         MARKET(TestTags.MARKET_DONE, showsMap = false),
         TRAVEL(TestTags.BOARD_TRAIN, showsMap = true),
         END_RUN(TestTags.CONFIRM_END_RUN, showsMap = true),
+        SAHUKAR(TestTags.borrow(1_000), showsMap = true),
+        BANK(TestTags.deposit(1_000), showsMap = true),
+        LUGGAGE(TestTags.buyTransport(TransportId.TRUNK), showsMap = true),
         NEW_RUN(TestTags.START_RUN, showsMap = false),
         ENDED(TestTags.NEW_RUN, showsMap = false),
         ;
@@ -66,6 +70,9 @@ class ScreenLayoutTest(private val case: Case) {
             MARKET -> Phase.Playing(run, Overlay.Market)
             TRAVEL -> Phase.Playing(run, Overlay.Travel(CityId.SRINAGAR))
             END_RUN -> Phase.Playing(run, Overlay.EndRun)
+            SAHUKAR -> Phase.Playing(run, Overlay.Sahukar)
+            BANK -> Phase.Playing(run, Overlay.Bank)
+            LUGGAGE -> Phase.Playing(run, Overlay.Luggage)
             NEW_RUN -> Phase.NewRun
             ENDED -> Phase.Ended(run)
         }
@@ -106,7 +113,8 @@ class ScreenLayoutTest(private val case: Case) {
             city = CityId.BANGALORE,
             cashRupees = 987_654_321,
             debtRupees = 12_345_678,
-            luggageCapacity = 100,
+            bankRupees = 8_765_432,
+            transport = TransportId.JHOLA,
             holdings = mapOf(GoodId.SILK_SAREES to 40, GoodId.GOLD to 30, GoodId.ONIONS to 29),
         )
 

@@ -38,7 +38,28 @@ object GameConstants {
     val STARTING_CITY = CityId.MUMBAI
     const val STARTING_CASH_RUPEES = 10_000L
     const val STARTING_DEBT_RUPEES = 5_000L
-    const val LUGGAGE_CAPACITY = 100
+    val STARTING_TRANSPORT = TransportId.JHOLA
+
+    // The facilities, in every city
+    /** What the sahukar adds to a debt each day that passes on the rails. */
+    const val SAHUKAR_DAILY_INTEREST = 0.08
+    /** What the bank adds to savings each day that passes on the rails. */
+    const val BANK_DAILY_INTEREST = 0.01
+    /** The amounts the facility sheets offer, one tap at a time. */
+    val TRANSACTION_STEPS_RUPEES = listOf(1_000L, 10_000L)
+
+    /**
+     * The luggage ladder, cheapest first. Jhola is where every run starts and is not for sale.
+     * Game tuning, not history; the balance pass will set real prices and sizes.
+     */
+    val TRANSPORTS: List<Transport> = listOf(
+        Transport(TransportId.JHOLA, capacity = 100, priceRupees = 0),
+        Transport(TransportId.TRUNK, capacity = 250, priceRupees = 4_000),
+        Transport(TransportId.TEMPO, capacity = 600, priceRupees = 15_000),
+        Transport(TransportId.TRUCK, capacity = 1_500, priceRupees = 50_000),
+    )
+
+    fun transport(id: TransportId): Transport = TRANSPORTS.first { it.id == id }
 
     /**
      * Base prices at year-2000 rupee levels, per trade unit.

@@ -90,6 +90,35 @@ fun TextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier)
     }
 }
 
+/** An outlined chip for one amount or one choice, as in the facility sheets. */
+@Composable
+fun AmountChip(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+) {
+    val shape = RoundedCornerShape(UiDimens.ButtonCorner)
+    Box(
+        modifier
+            .heightIn(min = UiDimens.MinTouchTarget)
+            .widthIn(min = UiDimens.MinTouchTarget)
+            .clip(shape)
+            .alpha(if (enabled) 1f else UiType.DISABLED_ALPHA)
+            .background(UiColors.Paper)
+            .border(UiDimens.ChipBorder, UiColors.Line, shape)
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
+            .padding(
+                horizontal = UiDimens.ChipPaddingHorizontal,
+                vertical = UiDimens.ChipPaddingVertical,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(text, style = UiType.ChipLabel)
+    }
+}
+
 @Composable
 fun Divider(modifier: Modifier = Modifier) {
     Box(
