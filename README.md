@@ -4,8 +4,9 @@ An original, offline, ad-free trading game for Android: a travelling trader ride
 between Indian cities in the year 2000, buying where goods are cheap and selling where they
 are scarce, before the days run out.
 
-Status: walking skeleton. The home screen (net worth, rail map, market drawer) runs on a
-device; trading, travel and events are not built yet. UI mockups live on the
+Status: the trading loop is playable. Buy and sell one unit at a time in each city's market,
+and take the train between six cities; each trip uses up days. Loans, events, saving between
+sessions and the end-of-run screen are not built yet. UI mockups live on the
 `prototype/ui-mockups` branch.
 
 - No ads, no analytics, no permissions at all.
@@ -27,9 +28,11 @@ Needs JDK 17 and the Android SDK (platform 36).
     ./gradlew test                  # engine tests + UI layout tests
     ./gradlew :app:assembleRelease  # release APK in app/build/outputs/apk/release/
 
-The UI layout tests lay the real screens out at eight screen sizes and five text-zoom
-settings and fail if any text is cut off, runs off the screen, or a control is too small
-to tap.
+The UI layout tests lay every screen out at eight screen sizes and five text-zoom settings
+and fail if any text is cut off, a word is split across lines, anything runs off the screen,
+a control is too small to tap, or a screen's main action is out of reach. The game flow tests
+play through the screens the way a player would. The engine has a simulation test of 20,000
+random moves.
 
 ## Release signing
 

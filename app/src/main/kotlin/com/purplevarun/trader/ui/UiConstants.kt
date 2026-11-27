@@ -7,6 +7,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -21,6 +22,10 @@ object UiColors {
     val Accent = Color(0xFFC8452C)
     val Line = Color(0xFFDDD3BF)
     val Land = Color(0xFFE9E0CC)
+    val Up = Color(0xFF2F8F5B)
+    val Down = Color(0xFFC8452C)
+    val Scrim = Color(0x4D1D1B16)
+    val OnAccent = Color(0xFFFFFFFF)
 }
 
 /** Sizes are in dp so they track the phone's display-size setting. */
@@ -56,6 +61,35 @@ object UiDimens {
     val GrabHandleWidth = 36.dp
     val GrabHandleHeight = 4.dp
     val GrabHandleGap = 10.dp
+
+    /** A tap on the map picks the nearest city, if one is this close. */
+    val CityTapRadius = 56.dp
+    val RouteStroke = 2.dp
+    val RouteTieLength = 6.dp
+    val DestinationRingStroke = 3.dp
+
+    val DividerThickness = 1.dp
+    val BarPaddingTop = 16.dp
+    val BarPaddingBottom = 10.dp
+    val BarLineGap = 2.dp
+    val FooterPaddingVertical = 4.dp
+    val RowPaddingVertical = 6.dp
+    val RowMinHeight = 56.dp
+    val RowGap = 8.dp
+    val RowStackGap = 2.dp
+    val PriceToButtonsGap = 4.dp
+    val RoundButtonSize = 36.dp
+    val RoundButtonBorder = 1.5.dp
+
+    val ButtonCorner = 12.dp
+    val ButtonPaddingHorizontal = 16.dp
+    val ButtonPaddingVertical = 12.dp
+    val TextButtonPaddingHorizontal = 12.dp
+    val SheetLineGap = 4.dp
+    val SheetActionsGap = 12.dp
+
+    /** The travel sheet never covers more than this share of the screen; its text scrolls inside. */
+    const val SHEET_MAX_HEIGHT_FRACTION = 0.85f
 }
 
 /**
@@ -89,6 +123,7 @@ object UiType {
     const val MAP_LABEL_MAX_FONT_SCALE = 1.3f
 
     const val GRAB_HANDLE_ALPHA = 0.5f
+    const val DISABLED_ALPHA = 0.3f
 
     /** The net worth shrinks within this range to stay on one line. */
     val NetWorthMaxSize = 36.sp
@@ -135,6 +170,54 @@ object UiType {
         lineHeight = 17.sp,
     )
     val MapLabelCurrent = MapLabel.copy(fontWeight = FontWeight.Bold)
+
+    val SheetTitle = TextStyle(
+        color = UiColors.Ink,
+        fontFamily = Display,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+    )
+    val GoodName = TextStyle(
+        color = UiColors.Ink,
+        fontFamily = Display,
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+    )
+    val Small = TextStyle(
+        color = UiColors.Mute,
+        fontFamily = Interface,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        fontFeatureSettings = TABULAR_FIGURES,
+    )
+    val Price = TextStyle(
+        color = UiColors.Ink,
+        fontFamily = Interface,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        fontFeatureSettings = TABULAR_FIGURES,
+    )
+    val Change = Small.copy(textAlign = TextAlign.End)
+    val RoundButtonSymbol = TextStyle(
+        fontFamily = Interface,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        lineHeight = 22.sp,
+        textAlign = TextAlign.Center,
+    )
+    val Button = TextStyle(
+        color = UiColors.OnAccent,
+        fontFamily = Interface,
+        fontWeight = FontWeight.Bold,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        textAlign = TextAlign.Center,
+    )
+    val Link = Button.copy(color = UiColors.Accent)
 }
 
 object TestTags {
@@ -142,4 +225,10 @@ object TestTags {
     const val NET_WORTH = "netWorth"
     const val RAIL_MAP = "railMap"
     const val MARKET_DRAWER = "marketDrawer"
+    const val MARKET = "market"
+    const val MARKET_DONE = "marketDone"
+    const val TRAVEL_SHEET = "travelSheet"
+    const val BOARD_TRAIN = "boardTrain"
+
+    fun cityLabel(city: com.purplevarun.trader.engine.CityId) = "city_${city.name}"
 }

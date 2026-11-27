@@ -3,21 +3,67 @@
 <resources>
     <string name="app_name">Train Trader</string>
 
+    <!-- Home -->
     <string name="net_worth_label">Net worth · %1$s</string>
     <string name="date_format">%1$d %2$s %3$d</string>
     <string name="day_of_run">Day %1$d of %2$d</string>
     <string name="cash_and_debt">Cash %1$s · Debt %2$s</string>
-
     <string name="market_title">%1$s mandi</string>
-    <string name="market_hint">%1$d goods · swipe up to trade · tap a city to travel</string>
+    <string name="market_hint">%1$d goods · tap here to trade · tap a city to travel</string>
     <string name="open_market">Open the market</string>
+    <string name="travel_to">Travel to %1$s</string>
 
+    <!-- Market -->
+    <string name="market_status">Day %1$d · %2$s</string>
+    <string name="held_some">%1$s · %2$d held</string>
+    <string name="held_none">%1$s · none held</string>
+    <string name="change_up">▲%1$d%%</string>
+    <string name="change_down">▼%1$d%%</string>
+    <string name="change_flat">0%</string>
+    <string name="buy_one">Buy one %1$s</string>
+    <string name="sell_one">Sell one %1$s</string>
+    <string name="luggage">Luggage %1$d/%2$d</string>
+    <string name="done">Done</string>
+
+    <!-- Travel -->
+    <plurals name="trip_days">
+        <item quantity="one">%1$d day by train</item>
+        <item quantity="other">%1$d days by train</item>
+    </plurals>
+    <string name="trip_direct">%1$s · direct</string>
+    <string name="trip_via">%1$s · via %2$s</string>
+    <string name="list_separator">", "</string>
+    <plurals name="days_left_after_trip">
+        <item quantity="one">%1$d day left after this trip</item>
+        <item quantity="other">%1$d days left after this trip</item>
+    </plurals>
+    <string name="arrival">Arrives %1$s · %2$s</string>
+    <string name="too_far">Not enough days left: the run ends on %1$s.</string>
+    <string name="board_train">Board the train</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+
+    <!-- Cities -->
     <string name="city_mumbai">Mumbai</string>
     <string name="city_delhi">Delhi</string>
     <string name="city_calcutta">Calcutta</string>
     <string name="city_srinagar">Srinagar</string>
     <string name="city_bangalore">Bangalore</string>
     <string name="city_hyderabad">Hyderabad</string>
+
+    <!-- Goods and the units they are traded in -->
+    <string name="good_onions">Onions</string>
+    <string name="good_cotton">Cotton</string>
+    <string name="good_basmati">Basmati</string>
+    <string name="good_chai">Chai</string>
+    <string name="good_masala">Masala</string>
+    <string name="good_silk_sarees">Silk sarees</string>
+    <string name="good_kesar">Kesar</string>
+    <string name="good_gold">Gold</string>
+    <string name="unit_quintal">quintal</string>
+    <string name="unit_bundle_of_ten">bundle of 10</string>
+    <string name="unit_kilogram">kg</string>
+    <string name="unit_hundred_grams">100 g</string>
 
     <string-array name="month_abbreviations">
         <item>Jan</item>
