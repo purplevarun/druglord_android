@@ -1,6 +1,7 @@
 # AGENTS.md
 
 Instructions for any coding agent working in this repo. Claude Code reads this file through `CLAUDE.md`.
+For where the work stands, why it is the way it is, and what comes next, read `HANDOFF.md`.
 
 ## What this is
 
