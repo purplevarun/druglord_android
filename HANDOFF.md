@@ -2,7 +2,7 @@
 
 Context for the next agent or session picking up this repo. Read `AGENTS.md` first: it holds the
 rules. This file holds what is not written down anywhere else: why things are the way they are,
-the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `7fb1298`.
+the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `a2ddbd4`.
 
 ## The goal
 
@@ -32,15 +32,31 @@ and the theme is not about drugs.
 
 ## Where things stand
 
-The trading loop is playable: a market per city with − / + to sell or buy one, and train trips
-that use up days. Details are in the commit history (`git log`); the main pieces are:
+A whole run is playable: a market per city with − / + to sell or buy one, train trips that use
+up days, a way to end the run, an end screen with a rank, and a best-runs list. The run and the
+list survive the app being closed. Details are in the commit history (`git log`); the main pieces:
 
-- `engine/`: `RunState` (the whole run), `Game.apply` (the rules), `Market` (prices derived from
-  the run's seed, never stored), `RailNetwork` (routes), `GameCalendar` (day to date).
-- `app/`: `GameScreen` (holds state, survives rotation and process death via `rememberSaveable`),
-  `HomeScreen`, `RailMap`, `MarketScreen`, `TravelSheet`.
-- Tests: 33 engine tests (including a 20,000-move simulation) and 494 app tests (40 more are
-  skipped, as designed). `./gradlew test` takes about 4 minutes on this PC.
+- `engine/`: `RunState` (the whole run, plus `isEndless`, `isOnLastDay`, `rank`), `Game.apply`
+  (the rules), `Market` (prices derived from the run's seed, never stored), `RailNetwork`
+  (routes), `GameCalendar` (day to date), `GameConstants.RANK_THRESHOLDS`.
+- `app/`: `GameScreen` (holds `Phase`: `NewRun` / `Playing` / `Ended`), `HomeScreen`, `RailMap`,
+  `MarketScreen`, `TravelSheet`, `EndRunSheet` (the end/retire confirmation), `NewRunScreen`
+  (30/60/90/endless + best runs), `EndScreen`, `RunStore` (SharedPreferences, hand-rolled
+  versioned format; `MAX_BEST_RUNS` = 5).
+- Tests: 39 engine tests (including a 20,000-move simulation) and 1,307 app tests (120 more are
+  skipped, as designed). `./gradlew test` takes under a minute on this Mac.
+
+### Decisions made for slice 1 (27 Nov 2026)
+
+- Retire-anytime "End the run" lives in the header; a prominent "Finish the run" button appears
+  pinned above the market drawer on the last day of finite runs. Both confirm through
+  `EndRunSheet`. Endless runs only get the retire button.
+- Score = final net worth (goods liquidated at the last day's prices, minus debt). User's call.
+- Endless is a real option: `ENDLESS_RUN_LENGTH_DAYS = Int.MAX_VALUE`; header shows
+  "Day N · endless" and no progress bar.
+- Ranks are a placeholder Hindi ladder: Divala < 0, Thelawala ≥ 0, Dukandaar ≥ ₹25k,
+  Saudagar ≥ ₹1L, Seth ≥ ₹10L, Crorepati ≥ ₹1Cr. Thresholds are guesses; tune in the balance pass.
+- App opens on the new-run screen when no run is saved, resumes mid-run when one is.
 
 ## Known gaps and open points
 
@@ -50,11 +66,10 @@ that use up days. Details are in the commit history (`git log`); the main pieces
 - **Tuning I chose, never confirmed by the user:** ₹10,000 starting cash, ₹5,000 debt, 100
   luggage slots with every unit taking one slot, the city price table and each good's volatility.
 - **Debt never grows yet.** It waits for the sahukar slice.
-- **The run is not saved between sessions.** It survives rotation and the app being stopped in
-  the background, but closing the app loses it.
-- **No end of run.** On the last day you can still trade, but there is no end screen and no new run.
 - **From the mockups, not built:** the exact-amount keypad, the "movers" ticker, travel rumours,
-  each city's speciality line, the endless run option.
+  each city's speciality line.
+- **Saved-state format is v1.** `RunStore` checks `FORMAT_VERSION`; a format change needs a bump
+  and (ideally) a migration, or saved runs silently reset.
 - **Android 7 (API 24-25):** bold Gelasio renders as regular, because those versions cannot pick
   a weight from a variable font. Never tested on a real old phone.
 - **Agent skills:** never checked loading in Copilot, Devin or Windsurf, only that the files are
@@ -63,7 +78,7 @@ that use up days. Details are in the commit history (`git log`); the main pieces
   `harness/pstack/`. Check its licence before copying it into this repo the way
   `scripts/sync_agent_skills.py` copies the Pocock skills.
 - **The keystore has one copy.** `release.keystore` and `keystore.properties` exist only at the
-  repo root on the user's PC (gitignored). The user was told to back them up and has not
+  repo root on this Mac (gitignored). The user was told to back them up and has not
   confirmed it. If they are lost, installed copies must be uninstalled before an update.
 
 ## The plan
@@ -71,9 +86,7 @@ that use up days. Details are in the commit history (`git log`); the main pieces
 Each item is a vertical slice: engine test-first, then screens, then the size and zoom tests,
 then a check on the emulator, then commit and push to `main`.
 
-1. **End of run and saving.** An end screen with final net worth and a rank, the best-runs list,
-   a new-run screen with 30 / 60 / 90 / endless days, and saving the run and best runs between
-   sessions. Keep the APK small: prefer Android's built-in storage over new libraries.
+1. ~~End of run and saving.~~ **Done** in `a2ddbd4` (issue #1).
 2. **Sahukar and bank.** A moneylender with daily interest (about 8% a day in the mockup), a bank
    paying about 1% a day that is safe from pickpockets, and transport upgrades
    (jhola, trunk, tempo, truck) that raise luggage capacity.
@@ -91,16 +104,21 @@ then a check on the emulator, then commit and push to `main`.
 
 ## This machine
 
-- **JDK 17:** `C:\Users\Varun\tools\jdk-17.0.21.1+2`. `JAVA_HOME` and Path are set for the
-  Windows user; shells opened before that change need `JAVA_HOME` exported by hand.
-- **Android SDK:** `C:\Users\Varun\AppData\Local\Android\Sdk` (platform 36, build-tools 36.0.0).
-- **Emulator:** `Local_AVD`, shows as `emulator-5554`, 1080x2400 at 420 dpi. To screenshot:
-  `adb exec-out screencap -p > shot.png`. After changing its font scale or rotation for a check,
-  set them back (`font_scale` 1.0, `accelerometer_rotation` 1).
+This is now a **Mac** (`/Users/ritikasaxena/Desktop/Varun/druglord_android`), not the Windows PC
+the earlier notes describe.
+
+- **JDK 17:** `~/Library/Java/JavaVirtualMachines/ms-17.0.20.1` — Gradle's `jvmToolchain(17)`
+  finds it on its own; `JAVA_HOME` does not need exporting. (JDK 21 is the shell default.)
+- **Android SDK:** `~/Library/Android/sdk` (platform 36, build-tools 35 + 36). `local.properties`
+  with `sdk.dir` was missing and has been created — it is gitignored, so recreate it on any
+  fresh clone. `adb`/`emulator` come from Homebrew, not the SDK dir.
+- **Emulator:** `Local_AVD`, shows as `emulator-5554`, 1080x2400. Start it with
+  `emulator -avd Local_AVD`. To screenshot: `adb exec-out screencap -p > shot.png`.
+  To tap through the UI: `adb shell uiautomator dump /sdcard/ui.xml` for bounds, then
+  `adb shell input tap x y`. After changing font scale or rotation for a check, set them back.
 - **Build stack:** Gradle 9.3.1, Android Gradle plugin 8.13.1, Kotlin 2.1.20, Compose BOM
-  2025.05.00, Robolectric 4.15.1. These were chosen because they were already cached on this PC.
-- **Not installed:** Node and the `claude` command-line tool. Python 3.12 is available.
-- **GitHub:** `gh` is signed in as `purplevarun`.
+  2025.05.00, Robolectric 4.15.1.
+- **GitHub:** `gh` is signed in as `purplevarun`. Issue tracker is live: #1 was this slice.
 
 ## Gotchas already hit
 
@@ -117,11 +135,14 @@ then a check on the emulator, then commit and push to `main`.
 
 ## Suggested skills
 
-- `grill-me` or `grill-with-docs` before each slice: the user has never been grilled, and slice 1
-  has open questions (rank names, what counts as the end, whether debt counts against the score).
-- `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up).
-- `tdd` while building. It asks you to agree the test seams with the user first: so far they are
-  `Game.apply` for rules and `GameFlowTest` / `ScreenLayoutTest` for screens.
+- `grilling` before each slice: slice 1 was decided by asking the open questions directly
+  (worked well). Slice 2 open questions: sahukar interest rate and compounding, the bank's
+  interest rate and whether deposits travel with you, upgrade capacities and prices, and where
+  the moneylender/bank live in the UI (a third sheet? a city facility?).
+- `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up;
+  neither skill is vendored here yet, issues were written by hand so far).
+- `tdd` while building. The agreed seams: `Game.apply`/`RunState` for rules,
+  `GameFlowTest` / `ScreenLayoutTest` for screens, `RunStoreTest` for persistence.
 - `prototype` for a new screen whose look is not settled. Show it in the approved style.
 - `code-review` before each commit, and `diagnosing-bugs` for anything that is not obvious.
 - `handoff` at the end of the next session, to refresh this file.
