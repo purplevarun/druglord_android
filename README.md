@@ -6,8 +6,7 @@ are scarce, before the days run out.
 
 Status: the trading loop is playable. Buy and sell one unit at a time in each city's market,
 and take the train between six cities; each trip uses up days. Loans, events, saving between
-sessions and the end-of-run screen are not built yet. UI mockups live on the
-`prototype/ui-mockups` branch.
+sessions and the end-of-run screen are not built yet.
 
 - No ads, no analytics, no permissions at all.
 - Kotlin and Jetpack Compose, with no image assets.

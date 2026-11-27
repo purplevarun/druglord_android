@@ -14,7 +14,6 @@ days run out. Kotlin and Jetpack Compose. The release APK is sideloaded, not pub
   `GameConstants.kt`. `Game.apply(state, action)` is the only place a move is checked and applied.
 - `app/`: the Android UI. Every colour, size and text style lives in `UiConstants.kt`; every
   on-screen string lives in `res/values/strings.xml`.
-- `prototype/`: throwaway HTML mockups (full history on the `prototype/ui-mockups` branch).
 
 ## Rules
 
@@ -28,6 +27,7 @@ days run out. Kotlin and Jetpack Compose. The release APK is sideloaded, not pub
   screens. Prove a new check fails on broken code before trusting it.
 - No permissions, no network, no ads, no analytics.
 - Never commit `release.keystore` or `keystore.properties`.
+- Work directly on `main`: no feature or prototype branches. Commit there and push there.
 
 ## Commands
 
