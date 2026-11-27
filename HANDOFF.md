@@ -2,7 +2,7 @@
 
 Context for the next agent or session picking up this repo. Read `AGENTS.md` first: it holds the
 rules. This file holds what is not written down anywhere else: why things are the way they are,
-the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `a2ddbd4`.
+the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `6cd0668`.
 
 ## The goal
 
@@ -33,18 +33,35 @@ and the theme is not about drugs.
 ## Where things stand
 
 A whole run is playable: a market per city with − / + to sell or buy one, train trips that use
-up days, a way to end the run, an end screen with a rank, and a best-runs list. The run and the
-list survive the app being closed. Details are in the commit history (`git log`); the main pieces:
+up days, the sahukar, the bank and the luggage shop in every city, a way to end the run, an end
+screen with a rank, and a best-runs list. The run and the list survive the app being closed.
+Details are in the commit history (`git log`); the main pieces:
 
-- `engine/`: `RunState` (the whole run, plus `isEndless`, `isOnLastDay`, `rank`), `Game.apply`
-  (the rules), `Market` (prices derived from the run's seed, never stored), `RailNetwork`
-  (routes), `GameCalendar` (day to date), `GameConstants.RANK_THRESHOLDS`.
-- `app/`: `GameScreen` (holds `Phase`: `NewRun` / `Playing` / `Ended`), `HomeScreen`, `RailMap`,
-  `MarketScreen`, `TravelSheet`, `EndRunSheet` (the end/retire confirmation), `NewRunScreen`
-  (30/60/90/endless + best runs), `EndScreen`, `RunStore` (SharedPreferences, hand-rolled
-  versioned format; `MAX_BEST_RUNS` = 5).
-- Tests: 39 engine tests (including a 20,000-move simulation) and 1,307 app tests (120 more are
-  skipped, as designed). `./gradlew test` takes under a minute on this Mac.
+- `engine/`: `RunState` (the whole run: cash, debt, bank, transport, holdings; plus `isEndless`,
+  `isOnLastDay`, `rank`), `Game.apply` (the rules, including `Borrow`/`Repay`/`Deposit`/`Withdraw`/
+  `BuyTransport`), `Market` (prices derived from the run's seed, never stored), `RailNetwork`
+  (routes), `GameCalendar` (day to date), `GameConstants.RANK_THRESHOLDS`, `TRANSPORTS`,
+  `SAHUKAR_DAILY_INTEREST` (8%), `BANK_DAILY_INTEREST` (1%), `TRANSACTION_STEPS_RUPEES`.
+- `app/`: `GameScreen` (holds `Phase`: `NewRun` / `Playing` / `Ended`; overlays include
+  `Sahukar`/`Bank`/`Luggage`), `HomeScreen` (places chips in the bottom drawer), `RailMap`,
+  `MarketScreen`, `Sheet` (shared bottom-sheet chrome used by all five sheets),
+  `FacilitiesSheets` (Sahukar/Bank/Luggage), `NewRunScreen`, `EndScreen`,
+  `RunStore` (SharedPreferences, hand-rolled format at **v2**; v1 saves load with no bank and
+  a jhola; `MAX_BEST_RUNS` = 5).
+- Tests: 50 engine tests (including a 20,000-move simulation that also plays the facilities)
+  and 1,800+ app tests (120 more skipped, as designed). `./gradlew test` takes under a minute
+  on this Mac.
+
+### Decisions made for slice 2 (27 Nov 2026)
+
+- Sahukar: borrow any amount and repay, in every city, at 8% a day compounding on each travel
+  day. Bank: one account in every city, pickpocket-safe, 1% a day on travel days. Both accrue
+  inside `Game.apply(Travel)`, not on a timer.
+- Luggage ladder: jhola 100 (start) → trunk 250 ₹4,000 → tempo 600 ₹15,000 → truck 1,500
+  ₹50,000. `RunState.luggageCapacity` is now derived from the transport, not stored.
+- Facilities live in the drawer's "places" chips (sahukar/bank/luggage), each opening a sheet.
+  Chips are verb + amount (`Borrow ₹1,000`, `All`) — long labels overflowed the sheet at
+  text-zoom x2.0. The places row itself scrolls inside a capped height for the same reason.
 
 ### Decisions made for slice 1 (27 Nov 2026)
 
@@ -65,11 +82,10 @@ list survive the app being closed. Details are in the commit history (`git log`)
   flagged `SOURCED` or `ESTIMATE` in `GameConstants.GOODS`.
 - **Tuning I chose, never confirmed by the user:** ₹10,000 starting cash, ₹5,000 debt, 100
   luggage slots with every unit taking one slot, the city price table and each good's volatility.
-- **Debt never grows yet.** It waits for the sahukar slice.
 - **From the mockups, not built:** the exact-amount keypad, the "movers" ticker, travel rumours,
   each city's speciality line.
-- **Saved-state format is v1.** `RunStore` checks `FORMAT_VERSION`; a format change needs a bump
-  and (ideally) a migration, or saved runs silently reset.
+- **Saved-state format is v2.** `RunStore` reads v1 too (those runs load with no savings and a
+  jhola). A format change still needs a bump or saved runs silently reset.
 - **Android 7 (API 24-25):** bold Gelasio renders as regular, because those versions cannot pick
   a weight from a variable font. Never tested on a real old phone.
 - **Agent skills:** never checked loading in Copilot, Devin or Windsurf, only that the files are
@@ -87,9 +103,8 @@ Each item is a vertical slice: engine test-first, then screens, then the size an
 then a check on the emulator, then commit and push to `main`.
 
 1. ~~End of run and saving.~~ **Done** in `a2ddbd4` (issue #1).
-2. **Sahukar and bank.** A moneylender with daily interest (about 8% a day in the mockup), a bank
-   paying about 1% a day that is safe from pickpockets, and transport upgrades
-   (jhola, trunk, tempo, truck) that raise luggage capacity.
+2. ~~Sahukar and bank.~~ **Done** in `6cd0668` (issue #2): 8%/day debt, 1%/day pickpocket-safe
+   savings, jhola→truck upgrades, places chips in the drawer opening sheets.
 3. **Random events.** A checkpost (pay, talk your way through, or take the back road for a day),
    pickpockets on the train, late trains, bandhs, and price spikes or crashes (monsoon, bumper
    harvest, Diwali, wedding season). Also market saturation: dumping a lot in one city pushes
@@ -135,10 +150,10 @@ the earlier notes describe.
 
 ## Suggested skills
 
-- `grilling` before each slice: slice 1 was decided by asking the open questions directly
-  (worked well). Slice 2 open questions: sahukar interest rate and compounding, the bank's
-  interest rate and whether deposits travel with you, upgrade capacities and prices, and where
-  the moneylender/bank live in the UI (a third sheet? a city facility?).
+- `grilling` before each slice: slices 1 and 2 were decided by asking the open questions
+  directly (worked well). Slice 3 open questions: which events fire when (on travel days only?
+  also mid-city?), odds, whether choices like the checkpost bribe cost cash or days, and how
+  saturation depth/recovery works.
 - `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up;
   neither skill is vendored here yet, issues were written by hand so far).
 - `tdd` while building. The agreed seams: `Game.apply`/`RunState` for rules,
