@@ -11,9 +11,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.test.core.app.ApplicationProvider
+import com.purplevarun.trader.RunStore
 import com.purplevarun.trader.engine.CityId
+import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.RunState
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,7 +36,21 @@ class GameFlowTest {
 
     private val newRun = RunState.newRun(seed = 42)
 
-    private fun start(run: RunState = newRun) = compose.setContent { GameScreen(newRun = { run }) }
+    /**
+     * Opens the game the way the player would find it. With [run] saved in the store the game
+     * picks it straight back up; with null it lands on the new-run screen.
+     */
+    private fun start(run: RunState? = newRun): RunStore {
+        val store = RunStore(ApplicationProvider.getApplicationContext())
+        run?.let(store::saveRun)
+        compose.setContent {
+            GameScreen(
+                store = store,
+                newRun = { days -> RunState.newRun(seed = 42, runLengthDays = days) },
+            )
+        }
+        return store
+    }
 
     private fun openMarket() = compose.onNodeWithTag(TestTags.MARKET_DRAWER).performClick()
 
@@ -106,6 +124,17 @@ class GameFlowTest {
     }
 
     @Test
+    fun `an endless run never speaks of days left`() {
+        start(RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS))
+        tapCity(CityId.DELHI)
+
+        compose.onNodeWithText("Arrives 2 Jan 2000").assertExists()
+        compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+
+        compose.onNodeWithText("Day 2 · endless").assertExists()
+    }
+
+    @Test
     fun `tapping the city you are in opens its market`() {
         start()
         tapCity(CityId.MUMBAI)
@@ -128,8 +157,12 @@ class GameFlowTest {
 
     @Test
     fun `the run and the open screen survive the activity being rebuilt`() {
+        val store = RunStore(ApplicationProvider.getApplicationContext())
+        store.saveRun(newRun)
         val restorer = StateRestorationTester(compose)
-        restorer.setContent { GameScreen(newRun = { newRun }) }
+        restorer.setContent {
+            GameScreen(store = store, newRun = { days -> RunState.newRun(seed = 42, runLengthDays = days) })
+        }
         openMarket()
         compose.onNodeWithContentDescription("Buy one Onions").performClick()
 
@@ -137,5 +170,90 @@ class GameFlowTest {
 
         compose.onNodeWithTag(TestTags.MARKET).assertExists()
         compose.onNodeWithText("quintal · 1 held").assertExists()
+    }
+
+    @Test
+    fun `with no run saved the new-run screen offers the lengths and the best runs`() {
+        start(run = null)
+
+        compose.onNodeWithTag(TestTags.NEW_RUN_SCREEN).assertExists()
+        compose.onNodeWithText("90 days").assertExists()
+        compose.onNodeWithText("Endless").assertExists()
+        compose.onNodeWithText("No finished runs yet.").assertExists()
+    }
+
+    @Test
+    fun `picking a run length and starting begins on day one of it`() {
+        start(run = null)
+
+        compose.onNodeWithTag(TestTags.runLength(90)).performClick()
+        compose.onNodeWithTag(TestTags.START_RUN).performClick()
+
+        compose.onNodeWithText("Day 1 of 90").assertExists()
+        compose.onNodeWithText("Mumbai mandi").assertExists()
+    }
+
+    @Test
+    fun `on the last day a finish button ends the run on the end screen`() {
+        start(newRun.copy(day = 60))
+
+        compose.onNodeWithTag(TestTags.FINISH_RUN).performClick()
+        compose.onNodeWithText("Finish the run?").assertExists()
+        compose.onNodeWithTag(TestTags.CONFIRM_END_RUN).performClick()
+
+        compose.onNodeWithTag(TestTags.END_SCREEN).assertExists()
+        compose.onNodeWithText("₹5,000").assertExists()
+        compose.onNodeWithText("Thelawala").assertExists()
+        compose.onNodeWithText("RUN OVER · 29 FEB 2000").assertExists()
+    }
+
+    @Test
+    fun `ending a run early asks first and can be refused`() {
+        start()
+
+        compose.onNodeWithTag(TestTags.END_RUN).performClick()
+        compose.onNodeWithText("End the run?").assertExists()
+        compose.onNodeWithText("Net worth ₹5,000 · Thelawala").assertExists()
+
+        compose.onNodeWithText("Keep trading").performClick()
+
+        compose.onNodeWithTag(TestTags.END_RUN_SHEET).assertDoesNotExist()
+        compose.onNodeWithText("Day 1 of 60").assertExists()
+    }
+
+    @Test
+    fun `a finished run lands on the best runs list`() {
+        val store = start(newRun.copy(day = 60))
+
+        compose.onNodeWithTag(TestTags.FINISH_RUN).performClick()
+        compose.onNodeWithTag(TestTags.CONFIRM_END_RUN).performClick()
+        compose.onNodeWithTag(TestTags.NEW_RUN).performClick()
+
+        compose.onNodeWithTag(TestTags.NEW_RUN_SCREEN).assertExists()
+        compose.onNodeWithText("₹5,000 · Thelawala · 60 days").assertExists()
+        assertEquals(1, store.bestRuns().size)
+    }
+
+    @Test
+    fun `a saved run picks up where it left off`() {
+        start(newRun.copy(day = 12, city = CityId.DELHI, cashRupees = 42_000))
+
+        compose.onNodeWithText("Day 12 of 60").assertExists()
+        compose.onNodeWithText("Delhi mandi").assertExists()
+    }
+
+    @Test
+    fun `an endless run has no finish button and still retires`() {
+        start(RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS))
+
+        compose.onNodeWithText("Day 1 · endless").assertExists()
+        compose.onNodeWithTag(TestTags.FINISH_RUN).assertDoesNotExist()
+
+        compose.onNodeWithTag(TestTags.END_RUN).performClick()
+        compose.onNodeWithText("End the run?").assertExists()
+        compose.onNodeWithTag(TestTags.CONFIRM_END_RUN).performClick()
+
+        compose.onNodeWithTag(TestTags.END_SCREEN).assertExists()
+        compose.onNodeWithText("1 days on the rails").assertExists()
     }
 }

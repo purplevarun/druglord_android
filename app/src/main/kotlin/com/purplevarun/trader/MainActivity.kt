@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.remember
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.ui.GameScreen
 
@@ -16,6 +17,12 @@ class MainActivity : ComponentActivity() {
         val darkIcons = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = darkIcons, navigationBarStyle = darkIcons)
         super.onCreate(savedInstanceState)
-        setContent { GameScreen(newRun = { RunState.newRun(seed = System.nanoTime()) }) }
+        setContent {
+            val store = remember { RunStore(applicationContext) }
+            GameScreen(
+                store = store,
+                newRun = { days -> RunState.newRun(seed = System.nanoTime(), runLengthDays = days) },
+            )
+        }
     }
 }

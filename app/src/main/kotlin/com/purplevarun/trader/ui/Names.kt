@@ -8,6 +8,7 @@ import com.purplevarun.trader.R
 import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.GameCalendar
 import com.purplevarun.trader.engine.GoodId
+import com.purplevarun.trader.engine.RankId
 import com.purplevarun.trader.engine.TradeUnit
 
 @StringRes
@@ -38,6 +39,16 @@ fun unitNameRes(unit: TradeUnit): Int = when (unit) {
     TradeUnit.BUNDLE_OF_TEN -> R.string.unit_bundle_of_ten
     TradeUnit.KILOGRAM -> R.string.unit_kilogram
     TradeUnit.HUNDRED_GRAMS -> R.string.unit_hundred_grams
+}
+
+@StringRes
+fun rankNameRes(id: RankId): Int = when (id) {
+    RankId.DIVALA -> R.string.rank_divala
+    RankId.THELAWALA -> R.string.rank_thelawala
+    RankId.DUKANDAAR -> R.string.rank_dukandaar
+    RankId.SAUDAGAR -> R.string.rank_saudagar
+    RankId.SETH -> R.string.rank_seth
+    RankId.CROREPATI -> R.string.rank_crorepati
 }
 
 /** The calendar date of a day of the run, such as "12 Jan 2000". */

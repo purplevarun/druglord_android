@@ -15,6 +15,22 @@ object GameConstants {
     val RUN_LENGTH_OPTIONS_DAYS = listOf(30, 60, 90)
     const val DEFAULT_RUN_LENGTH_DAYS = 60
 
+    /** A run with this many days never ends on its own: the trader retires when they choose. */
+    const val ENDLESS_RUN_LENGTH_DAYS = Int.MAX_VALUE
+
+    /**
+     * Final net worth to rank: the first threshold the score reaches or passes.
+     * Game tuning, not history; the balance pass will set real cutoffs.
+     */
+    val RANK_THRESHOLDS: List<Pair<Long, RankId>> = listOf(
+        10_000_000L to RankId.CROREPATI,
+        1_000_000L to RankId.SETH,
+        100_000L to RankId.SAUDAGAR,
+        25_000L to RankId.DUKANDAAR,
+        0L to RankId.THELAWALA,
+        Long.MIN_VALUE to RankId.DIVALA,
+    )
+
     // Travel
     const val DAYS_PER_RAIL_LINK = 1
 

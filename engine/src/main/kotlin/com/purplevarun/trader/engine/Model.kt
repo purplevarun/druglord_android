@@ -27,3 +27,9 @@ data class City(
 data class RailLink(val a: CityId, val b: CityId)
 
 data class GameDate(val day: Int, val month: Int, val year: Int)
+
+/**
+ * The title a finished run earns, lowest to highest. Display names are Android string
+ * resources keyed by these ids; the names are placeholders until the naming pass.
+ */
+enum class RankId { DIVALA, THELAWALA, DUKANDAAR, SAUDAGAR, SETH, CROREPATI }

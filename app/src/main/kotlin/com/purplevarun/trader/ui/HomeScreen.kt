@@ -53,6 +53,7 @@ fun HomeScreen(
     state: RunState,
     onOpenMarket: () -> Unit,
     onCityTap: (CityId) -> Unit,
+    onEndRun: () -> Unit,
     modifier: Modifier = Modifier,
     route: List<CityId> = emptyList(),
 ) {
@@ -67,8 +68,9 @@ fun HomeScreen(
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
                     Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                        Header(state)
+                        Header(state, onEndRun)
                     }
+                    FinishBar(state, onEndRun)
                     MarketDrawer(state.city, onOpenMarket)
                 }
                 RailMap(state.city, onCityTap, Modifier.weight(1f).fillMaxHeight(), route)
@@ -76,7 +78,7 @@ fun HomeScreen(
         } else {
             Column(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    Header(state)
+                    Header(state, onEndRun)
                     RailMap(
                         state.city,
                         onCityTap,
@@ -84,6 +86,7 @@ fun HomeScreen(
                         route,
                     )
                 }
+                FinishBar(state, onEndRun)
                 MarketDrawer(state.city, onOpenMarket)
             }
         }
@@ -92,7 +95,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Header(state: RunState) {
+private fun Header(state: RunState, onEndRun: () -> Unit) {
     val today = dateText(state.day)
 
     Column(
@@ -116,18 +119,25 @@ private fun Header(state: RunState) {
                 stepSize = UiType.NetWorthSizeStep,
             ),
         )
-        Spacer(Modifier.height(UiDimens.HeaderProgressGapTop))
-        RunProgress(fraction = state.day.toFloat() / state.runLengthDays)
+        if (!state.isEndless) {
+            Spacer(Modifier.height(UiDimens.HeaderProgressGapTop))
+            RunProgress(fraction = state.day.toFloat() / state.runLengthDays)
+        }
         Spacer(Modifier.height(UiDimens.HeaderProgressGapBottom))
-        // Sits on one line when there is room and wraps onto two when there is not.
+        // Sits on one line when there is room and wraps when there is not.
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalArrangement = Arrangement.spacedBy(UiDimens.HeaderLineGap),
         ) {
             BasicText(
-                text = stringResource(R.string.day_of_run, state.day, state.runLengthDays),
+                text = if (state.isEndless) {
+                    stringResource(R.string.day_endless, state.day)
+                } else {
+                    stringResource(R.string.day_of_run, state.day, state.runLengthDays)
+                },
                 style = UiType.Body,
+                modifier = Modifier.align(Alignment.CenterVertically),
             )
             BasicText(
                 text = stringResource(
@@ -136,8 +146,36 @@ private fun Header(state: RunState) {
                     formatRupees(state.debtRupees),
                 ),
                 style = UiType.Body,
+                modifier = Modifier.align(Alignment.CenterVertically),
+            )
+            TextButton(
+                text = stringResource(R.string.end_the_run),
+                onClick = onEndRun,
+                modifier = Modifier.testTag(TestTags.END_RUN),
             )
         }
+    }
+}
+
+/**
+ * On the last day of a finite run, the way out: a wide button pinned above the market drawer
+ * so it is always on screen. Endless runs never get one; they end from the header instead.
+ */
+@Composable
+private fun FinishBar(state: RunState, onEndRun: () -> Unit) {
+    if (!state.isOnLastDay) return
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = UiDimens.ScreenPadding)
+            .padding(bottom = UiDimens.FinishBarPaddingBottom),
+    ) {
+        PrimaryButton(
+            text = stringResource(R.string.finish_the_run),
+            enabled = true,
+            onClick = onEndRun,
+            modifier = Modifier.testTag(TestTags.FINISH_RUN),
+        )
     }
 }
 

@@ -17,8 +17,11 @@ import androidx.compose.ui.test.then
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import com.purplevarun.trader.BestRun
 import com.purplevarun.trader.engine.CityId
+import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
+import com.purplevarun.trader.engine.RankId
 import com.purplevarun.trader.engine.RunState
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -42,10 +45,30 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34], qualifiers = "w1400dp-h1400dp-mdpi")
 class ScreenLayoutTest(private val case: Case) {
 
-    enum class Screen(val overlay: Overlay, val mainActionTag: String, val showsMap: Boolean) {
-        HOME(Overlay.None, TestTags.MARKET_DRAWER, showsMap = true),
-        MARKET(Overlay.Market, TestTags.MARKET_DONE, showsMap = false),
-        TRAVEL(Overlay.Travel(CityId.SRINAGAR), TestTags.BOARD_TRAIN, showsMap = true),
+    enum class Screen(val mainActionTag: String, val showsMap: Boolean) {
+        HOME(TestTags.MARKET_DRAWER, showsMap = true),
+        HOME_LAST_DAY(TestTags.FINISH_RUN, showsMap = true),
+        HOME_ENDLESS(TestTags.MARKET_DRAWER, showsMap = true),
+        MARKET(TestTags.MARKET_DONE, showsMap = false),
+        TRAVEL(TestTags.BOARD_TRAIN, showsMap = true),
+        END_RUN(TestTags.CONFIRM_END_RUN, showsMap = true),
+        NEW_RUN(TestTags.START_RUN, showsMap = false),
+        ENDED(TestTags.NEW_RUN, showsMap = false),
+        ;
+
+        fun phase(run: RunState): Phase = when (this) {
+            HOME -> Phase.Playing(run, Overlay.None)
+            HOME_LAST_DAY -> Phase.Playing(run.copy(day = run.runLengthDays), Overlay.None)
+            HOME_ENDLESS -> Phase.Playing(
+                run.copy(runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS),
+                Overlay.None,
+            )
+            MARKET -> Phase.Playing(run, Overlay.Market)
+            TRAVEL -> Phase.Playing(run, Overlay.Travel(CityId.SRINAGAR))
+            END_RUN -> Phase.Playing(run, Overlay.EndRun)
+            NEW_RUN -> Phase.NewRun
+            ENDED -> Phase.Ended(run)
+        }
     }
 
     data class Case(val screen: Screen, val widthDp: Int, val heightDp: Int, val fontScale: Float) {
@@ -87,6 +110,15 @@ class ScreenLayoutTest(private val case: Case) {
             holdings = mapOf(GoodId.SILK_SAREES to 40, GoodId.GOLD to 30, GoodId.ONIONS to 29),
         )
 
+        /** The fullest the best-runs list can be: five entries, big amounts, an endless run. */
+        private val CROWDED_BEST_RUNS = listOf(
+            BestRun(987_654_321, 90, 90, RankId.CROREPATI),
+            BestRun(123_456_789, 60, 60, RankId.CROREPATI),
+            BestRun(98_765_432, GameConstants.ENDLESS_RUN_LENGTH_DAYS, 432, RankId.SETH),
+            BestRun(1_234_567, 30, 30, RankId.SETH),
+            BestRun(5_432, 60, 60, RankId.THELAWALA),
+        )
+
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
         fun cases(): List<Array<Any>> = Screen.entries.flatMap { screen ->
@@ -112,7 +144,15 @@ class ScreenLayoutTest(private val case: Case) {
                 DeviceConfigurationOverride.ForcedSize(DpSize(case.widthDp.dp, case.heightDp.dp)) then
                     DeviceConfigurationOverride.FontScale(case.fontScale),
             ) {
-                GameScreenContent(CROWDED_RUN, case.screen.overlay, onAction = {}, onOverlayChange = {})
+                GameScreenContent(
+                    phase = case.screen.phase(CROWDED_RUN),
+                    bestRuns = CROWDED_BEST_RUNS,
+                    onAction = {},
+                    onOverlayChange = {},
+                    onStartRun = {},
+                    onEndRun = {},
+                    onNewRun = {},
+                )
             }
         }
     }

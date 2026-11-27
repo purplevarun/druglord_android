@@ -43,6 +43,45 @@
     <string name="cancel">Cancel</string>
     <string name="close">Close</string>
 
+    <!-- Ending a run -->
+    <string name="day_endless">Day %1$d · endless</string>
+    <string name="end_the_run">End the run</string>
+    <string name="finish_the_run">Finish the run</string>
+    <string name="end_run_title">End the run?</string>
+    <string name="finish_run_title">Finish the run?</string>
+    <string name="end_run_explain">Your goods sell at today\'s prices.</string>
+    <string name="end_run_net_worth">Net worth %1$s · %2$s</string>
+    <string name="keep_trading">Keep trading</string>
+    <string name="arrival_endless">Arrives %1$s</string>
+
+    <!-- New run -->
+    <string name="new_run_subtitle">How many days on the rails?</string>
+    <string name="run_length_days">%1$d days</string>
+    <string name="run_length_endless">Endless</string>
+    <string name="run_length_endless_hint">no last day</string>
+    <string name="start_the_run">Start the run</string>
+    <string name="best_runs_title">Best runs</string>
+    <string name="best_run_line">%1$s · %2$s · %3$s</string>
+    <string name="best_run_endless_day">endless · day %1$d</string>
+    <plurals name="best_run_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="no_best_runs">No finished runs yet.</string>
+
+    <!-- Run over -->
+    <string name="run_over">Run over · %1$s</string>
+    <string name="end_days_endless">%1$d days on the rails</string>
+    <string name="new_run">New run</string>
+
+    <!-- Ranks: placeholder names until the naming pass -->
+    <string name="rank_divala">Divala</string>
+    <string name="rank_thelawala">Thelawala</string>
+    <string name="rank_dukandaar">Dukandaar</string>
+    <string name="rank_saudagar">Saudagar</string>
+    <string name="rank_seth">Seth</string>
+    <string name="rank_crorepati">Crorepati</string>
+
     <!-- Cities -->
     <string name="city_mumbai">Mumbai</string>
     <string name="city_delhi">Delhi</string>

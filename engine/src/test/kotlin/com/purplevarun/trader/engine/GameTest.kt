@@ -5,6 +5,7 @@ import com.purplevarun.trader.engine.GoodId.GOLD
 import com.purplevarun.trader.engine.GoodId.ONIONS
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GameTest {
@@ -102,6 +103,23 @@ class GameTest {
     @Test
     fun `travelling to where you already are is not a trip`() {
         rejected(Rejection.ALREADY_THERE, Game.apply(start, Action.Travel(CityId.MUMBAI)))
+    }
+
+    @Test
+    fun `an endless run has no last day`() {
+        val endless = RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS)
+        assertTrue(endless.isEndless)
+        assertFalse(start.isEndless)
+        val farAlong = endless.copy(day = 1_000)
+        assertEquals(1_001, done(Game.apply(farAlong, Action.Travel(CityId.DELHI))).day)
+    }
+
+    @Test
+    fun `the last day is the day the run ends on, which an endless run never has`() {
+        assertFalse(start.isOnLastDay)
+        assertTrue(start.copy(day = 60).isOnLastDay)
+        val endless = RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS)
+        assertFalse(endless.copy(day = 1_000).isOnLastDay)
     }
 
     private fun done(outcome: Outcome): RunState {

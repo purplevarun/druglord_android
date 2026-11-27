@@ -88,6 +88,15 @@ object UiDimens {
     val SheetLineGap = 4.dp
     val SheetActionsGap = 12.dp
 
+    val OptionDotSize = 14.dp
+    val OptionDotInnerSize = 6.dp
+    val OptionRowGap = 8.dp
+    val OptionDotToTextGap = 12.dp
+    val SectionGap = 14.dp
+    val FinishBarPaddingBottom = 8.dp
+    val RankGap = 2.dp
+    val EndScreenGap = 8.dp
+
     /** The travel sheet never covers more than this share of the screen; its text scrolls inside. */
     const val SHEET_MAX_HEIGHT_FRACTION = 0.85f
 }
@@ -178,6 +187,13 @@ object UiType {
         fontSize = 22.sp,
         lineHeight = 28.sp,
     )
+    val Rank = TextStyle(
+        color = UiColors.Accent,
+        fontFamily = Display,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+    )
     val GoodName = TextStyle(
         color = UiColors.Ink,
         fontFamily = Display,
@@ -229,6 +245,16 @@ object TestTags {
     const val MARKET_DONE = "marketDone"
     const val TRAVEL_SHEET = "travelSheet"
     const val BOARD_TRAIN = "boardTrain"
+    const val END_RUN = "endRun"
+    const val FINISH_RUN = "finishRun"
+    const val END_RUN_SHEET = "endRunSheet"
+    const val CONFIRM_END_RUN = "confirmEndRun"
+    const val NEW_RUN_SCREEN = "newRunScreen"
+    const val START_RUN = "startRun"
+    const val RUN_LENGTH_ENDLESS = "runLengthEndless"
+    const val END_SCREEN = "endScreen"
+    const val NEW_RUN = "newRun"
 
     fun cityLabel(city: com.purplevarun.trader.engine.CityId) = "city_${city.name}"
+    fun runLength(days: Int) = "runLength_$days"
 }

@@ -12,8 +12,13 @@ data class RunState(
     /** Only goods actually carried are listed, each with a quantity of at least one. */
     val holdings: Map<GoodId, Int>,
 ) {
-    /** Days still to come after today. */
+    /** Days still to come after today. Always a long way off in an endless run. */
     val daysLeft: Int get() = runLengthDays - day
+
+    val isEndless: Boolean get() = runLengthDays == GameConstants.ENDLESS_RUN_LENGTH_DAYS
+
+    /** True on the last day of a finite run: trading still works, and the run can be finished. */
+    val isOnLastDay: Boolean get() = !isEndless && daysLeft <= 0
 
     val luggageUsed: Int get() = holdings.values.sum()
 
@@ -26,6 +31,10 @@ data class RunState(
     /** Cash, plus everything carried at today's local price, less debt. */
     val netWorthRupees: Long
         get() = cashRupees + holdings.entries.sumOf { (good, quantity) -> quantity * priceOf(good) } - debtRupees
+
+    /** The title this run earns if it ended now. */
+    val rank: RankId
+        get() = GameConstants.RANK_THRESHOLDS.first { netWorthRupees >= it.first }.second
 
     /** The most of [good] that cash and luggage space allow right now. */
     fun maxBuyable(good: GoodId): Int {
