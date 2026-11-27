@@ -14,6 +14,8 @@ data class Good(
     val unit: TradeUnit,
     val basePriceRupees: Int,
     val basis: PriceBasis,
+    /** How far the price can swing either way on any day, as a fraction of its usual price. */
+    val volatility: Double,
 )
 
 data class City(

@@ -18,21 +18,46 @@ object GameConstants {
     // Travel
     const val DAYS_PER_RAIL_LINK = 1
 
+    // A new run
+    val STARTING_CITY = CityId.MUMBAI
+    const val STARTING_CASH_RUPEES = 10_000L
+    const val STARTING_DEBT_RUPEES = 5_000L
+    const val LUGGAGE_CAPACITY = 100
+
     /**
      * Base prices at year-2000 rupee levels, per trade unit.
      * SOURCED: cotton (2000-01 support price, RBI and Economic Survey), masala (black pepper,
      * about Rs 215/kg in 1999-2000), gold (Rs 4,300 to 4,800 per 10 g in 2000, RBI).
      * ESTIMATE: no year-2000 source found yet; verify before treating as final.
+     * Volatility is game tuning, not history: onions were notoriously jumpy, gold barely moved.
      */
     val GOODS: List<Good> = listOf(
-        Good(GoodId.ONIONS, TradeUnit.QUINTAL, 400, PriceBasis.ESTIMATE),
-        Good(GoodId.COTTON, TradeUnit.QUINTAL, 1_825, PriceBasis.SOURCED),
-        Good(GoodId.BASMATI, TradeUnit.QUINTAL, 3_000, PriceBasis.ESTIMATE),
-        Good(GoodId.CHAI, TradeUnit.QUINTAL, 6_500, PriceBasis.ESTIMATE),
-        Good(GoodId.MASALA, TradeUnit.QUINTAL, 21_500, PriceBasis.SOURCED),
-        Good(GoodId.SILK_SAREES, TradeUnit.BUNDLE_OF_TEN, 25_000, PriceBasis.ESTIMATE),
-        Good(GoodId.KESAR, TradeUnit.KILOGRAM, 40_000, PriceBasis.ESTIMATE),
-        Good(GoodId.GOLD, TradeUnit.HUNDRED_GRAMS, 45_000, PriceBasis.SOURCED),
+        Good(GoodId.ONIONS, TradeUnit.QUINTAL, 400, PriceBasis.ESTIMATE, volatility = 0.45),
+        Good(GoodId.COTTON, TradeUnit.QUINTAL, 1_825, PriceBasis.SOURCED, volatility = 0.15),
+        Good(GoodId.BASMATI, TradeUnit.QUINTAL, 3_000, PriceBasis.ESTIMATE, volatility = 0.15),
+        Good(GoodId.CHAI, TradeUnit.QUINTAL, 6_500, PriceBasis.ESTIMATE, volatility = 0.2),
+        Good(GoodId.MASALA, TradeUnit.QUINTAL, 21_500, PriceBasis.SOURCED, volatility = 0.25),
+        Good(GoodId.SILK_SAREES, TradeUnit.BUNDLE_OF_TEN, 25_000, PriceBasis.ESTIMATE, volatility = 0.2),
+        Good(GoodId.KESAR, TradeUnit.KILOGRAM, 40_000, PriceBasis.ESTIMATE, volatility = 0.3),
+        Good(GoodId.GOLD, TradeUnit.HUNDRED_GRAMS, 45_000, PriceBasis.SOURCED, volatility = 0.06),
+    )
+
+    /**
+     * How each city's usual price compares with the base price. Below 1 is cheap there, above 1
+     * is dear; a good not listed for a city sells at its base price. Game tuning loosely based on
+     * where things come from (saffron from Kashmir, tea through Calcutta, silk from Karnataka).
+     */
+    val CITY_PRICE_FACTORS: Map<CityId, Map<GoodId, Double>> = mapOf(
+        CityId.MUMBAI to mapOf(GoodId.ONIONS to 0.7, GoodId.GOLD to 0.95, GoodId.KESAR to 1.3, GoodId.CHAI to 1.15),
+        CityId.DELHI to mapOf(GoodId.BASMATI to 0.7, GoodId.SILK_SAREES to 1.3, GoodId.MASALA to 1.2, GoodId.GOLD to 1.05),
+        CityId.CALCUTTA to mapOf(GoodId.CHAI to 0.6, GoodId.ONIONS to 1.3, GoodId.COTTON to 1.2, GoodId.KESAR to 1.15),
+        CityId.SRINAGAR to mapOf(
+            GoodId.KESAR to 0.6, GoodId.ONIONS to 1.4, GoodId.MASALA to 1.35, GoodId.COTTON to 1.25, GoodId.CHAI to 1.2,
+        ),
+        CityId.BANGALORE to mapOf(
+            GoodId.SILK_SAREES to 0.65, GoodId.MASALA to 0.75, GoodId.BASMATI to 1.25, GoodId.KESAR to 1.2,
+        ),
+        CityId.HYDERABAD to mapOf(GoodId.COTTON to 0.7, GoodId.BASMATI to 1.2, GoodId.SILK_SAREES to 1.15),
     )
 
     /** Real coordinates, in degrees. The app projects these onto the map. */
