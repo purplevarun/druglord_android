@@ -53,24 +53,47 @@ fun MarketScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .testTag(TestTags.MARKET),
     ) {
-        FlowRow(
+        Column(
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = UiDimens.ScreenPadding)
                 .padding(top = UiDimens.BarPaddingTop, bottom = UiDimens.BarPaddingBottom),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalArrangement = Arrangement.spacedBy(UiDimens.BarLineGap),
         ) {
-            BasicText(
-                text = stringResource(R.string.market_title, stringResource(cityNameRes(state.city))),
-                style = UiType.Title,
-                modifier = Modifier.align(Alignment.CenterVertically),
-            )
-            BasicText(
-                text = stringResource(R.string.market_status, state.day, formatRupees(state.cashRupees)),
-                style = UiType.Body,
-                modifier = Modifier.align(Alignment.CenterVertically),
-            )
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(UiDimens.BarLineGap),
+            ) {
+                BasicText(
+                    text = stringResource(R.string.market_title, stringResource(cityNameRes(state.city))),
+                    style = UiType.Title,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+                BasicText(
+                    text = stringResource(R.string.market_status, state.day, formatRupees(state.cashRupees)),
+                    style = UiType.Body,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+            }
+            val speciality = GameConstants.specialityOf(state.city)
+            if (speciality != null) {
+                BasicText(
+                    text = stringResource(
+                        R.string.market_speciality,
+                        stringResource(goodNameRes(speciality)).lowercase(),
+                    ),
+                    style = UiType.Small,
+                )
+            }
+            val movers = state.movers().take(MOVERS_SHOWN)
+            if (movers.isNotEmpty()) {
+                BasicText(
+                    moversLine(movers),
+                    style = UiType.Small,
+                    modifier = Modifier.testTag(TestTags.MARKET_MOVERS),
+                )
+            }
         }
         Divider()
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -165,6 +188,24 @@ private fun MarketRow(
             }
         },
     )
+}
+
+private const val MOVERS_SHOWN = 3
+
+/** "▲ onions 32% · ▼ cotton 4%" — the mandi's biggest moves since yesterday. */
+@Composable
+private fun moversLine(movers: List<Pair<GoodId, Int>>): String {
+    val separator = stringResource(R.string.list_separator)
+    val parts = mutableListOf<String>()
+    for ((good, percent) in movers) {
+        val name = stringResource(goodNameRes(good)).lowercase()
+        parts += stringResource(
+            if (percent > 0) R.string.mover_up else R.string.mover_down,
+            name,
+            kotlin.math.abs(percent),
+        )
+    }
+    return parts.joinToString(separator)
 }
 
 @Composable

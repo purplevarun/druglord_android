@@ -104,6 +104,19 @@
     <string name="sell_amount_units">Sell %1$d %2$s</string>
     <string name="sell_stored_amount">Sell %1$d %2$s from the godown</string>
 
+    <!-- The market header: what the city is known for, and what moved -->
+    <string name="market_speciality">the cheap buy here: %1$s</string>
+    <string name="mover_up">▲ %1$s %2$d%%</string>
+    <string name="mover_down">▼ %1$s %2$d%%</string>
+
+    <!-- Rumour events: word on the street, and the day it proves true -->
+    <string name="event_rumour_title">word on the street</string>
+    <string name="event_rumour_up">%1$s will be dear in %2$s within days.</string>
+    <string name="event_rumour_down">%1$s will go cheap in %2$s within days.</string>
+    <string name="event_rumour_landed_title">the word was right</string>
+    <string name="event_rumour_landed_up">%1$s is up %2$d%% in %3$s.</string>
+    <string name="event_rumour_landed_down">%1$s is down %2$d%% in %3$s.</string>
+
     <!-- Travel -->
     <plurals name="trip_days">
         <item quantity="one">%1$d day by train</item>

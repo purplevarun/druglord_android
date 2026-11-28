@@ -24,6 +24,7 @@ import com.purplevarun.trader.engine.GameEvent
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RankId
+import com.purplevarun.trader.engine.Rumour
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
 import org.junit.Assert.assertFalse
@@ -142,6 +143,7 @@ class ScreenLayoutTest(private val case: Case) {
                 CityId.DELHI to mapOf(GoodId.KESAR to 5),
             ),
             holdings = mapOf(GoodId.SILK_SAREES to 40, GoodId.GOLD to 30, GoodId.ONIONS to 29),
+            rumours = listOf(Rumour(CityId.SRINAGAR, GoodId.KESAR, landsOnDay = 35, basisPoints = 6_000)),
         )
 
         /** The fullest the best-runs list can be: five entries, big amounts, long runs. */

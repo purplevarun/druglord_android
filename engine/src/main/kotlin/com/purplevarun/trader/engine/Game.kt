@@ -122,6 +122,10 @@ object Game {
 
         var rolled = applyMove(state, action)
         val events = mutableListOf<GameEvent>()
+        // Rumours whose day came land before the day rolls its own luck.
+        val (landed, rumourEvents) = landingRumours(rolled)
+        rolled = landed
+        events += rumourEvents
         if (action is Action.Travel) {
             repeat(rolled.day - state.day) {
                 val (next, event) = roll(rolled, onTheRails = true)
@@ -137,11 +141,15 @@ object Game {
     }
 
     /**
-     * Check plus move, without rolling the dice. For tests that want the move's own
-     * outcome and nothing the day might bring; production goes through [apply].
+     * Check plus move, without rolling the dice: rumour landings still happen (they are
+     * the day's doing, not luck). For tests that want the move's own outcome and nothing
+     * the dice might bring; production goes through [apply].
      */
     internal fun applyQuietly(state: RunState, action: Action): Outcome =
-        check(state, action)?.let { Outcome.Rejected(it) } ?: Outcome.Done(applyMove(state, action))
+        check(state, action)?.let { Outcome.Rejected(it) } ?: run {
+            val (moved, rumourEvents) = landingRumours(applyMove(state, action))
+            Outcome.Done(moved, rumourEvents)
+        }
 
     // --- The moves, no dice ---
 
@@ -322,10 +330,12 @@ object Game {
         if (onTheRails) {
             if (pick < 30) return pickpocket(state, random)
             if (pick < 50) return checkpost(state, random)
-            if (pick < 70) return bandh(state)
+            if (pick < 65) return bandh(state)
+            if (pick < 85) return rumour(state, random)
             return priceSwing(state, random)
         }
         if (pick < 40) return pickpocket(state, random)
+        if (pick < 70) return rumour(state, random)
         return priceSwing(state, random)
     }
 
@@ -359,6 +369,36 @@ object Game {
         return GameEvent.PriceSwing(state.city, GoodId.entries.random(random), basisPoints, headline)
     }
 
+    /**
+     * Word on the street about any city, any good: usually dear, sometimes cheap, lands in
+     * a few days — and a quarter of the time it is only talk. [RumourTip.lands] is what
+     * the trader cannot know until the day comes.
+     */
+    private fun rumour(state: RunState, random: Random): GameEvent.RumourTip {
+        val up = random.nextDouble() >= GameConstants.RUMOUR_DOWN_CHANCE
+        val basisPoints = random.nextInt(GameConstants.RUMOUR_BP_MIN, GameConstants.RUMOUR_BP_MAX + 1) *
+            (if (up) 1 else -1)
+        return GameEvent.RumourTip(
+            city = CityId.entries.random(random),
+            good = GoodId.entries.random(random),
+            up = up,
+            landsOnDay = state.day + random.nextInt(GameConstants.RUMOUR_DAYS_MIN, GameConstants.RUMOUR_DAYS_MAX + 1),
+            basisPoints = basisPoints,
+            lands = random.nextDouble() >= GameConstants.RUMOUR_DUD_CHANCE,
+        )
+    }
+
+    /** Rumours whose day arrived become real shifts, told as landings; the rest keep waiting. */
+    private fun landingRumours(state: RunState): Pair<RunState, List<GameEvent>> {
+        val due = state.rumours.filter { it.landsOnDay <= state.day }
+        if (due.isEmpty()) return state to emptyList()
+        var moved = state.copy(rumours = state.rumours - due)
+        for (rumour in due) {
+            moved = saturating(moved, rumour.city, rumour.good, rumour.basisPoints)
+        }
+        return moved to due.map { GameEvent.RumourLanded(it.city, it.good, it.basisPoints) }
+    }
+
     /** What an event does to the run. Exposed for tests; events arrive via [apply]. */
     internal fun applyEvent(state: RunState, event: GameEvent): RunState = when (event) {
         is GameEvent.Pickpocket -> state.copy(cashRupees = state.cashRupees - event.lostRupees)
@@ -386,6 +426,17 @@ object Game {
                 event.extraDays,
             )
         is GameEvent.PriceSwing -> saturating(state, event.city, event.good, event.basisPoints)
+        is GameEvent.RumourTip ->
+            // A true rumour joins the waiting list; a dud was never anything but talk.
+            if (event.lands) {
+                state.copy(
+                    rumours = state.rumours +
+                        Rumour(event.city, event.good, event.landsOnDay, event.basisPoints),
+                )
+            } else {
+                state
+            }
+        is GameEvent.RumourLanded -> state // only ever told, never drawn
     }
 
     private fun Long.withInterest(dailyRate: Double, days: Int): Long =

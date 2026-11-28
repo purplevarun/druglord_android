@@ -5,6 +5,7 @@ import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.PriceShift
+import com.purplevarun.trader.engine.Rumour
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
 import org.junit.Assert.assertEquals
@@ -35,6 +36,7 @@ class RunStoreTest {
         priceShifts = listOf(PriceShift(CityId.MUMBAI, GoodId.ONIONS, 2_500)),
         godowns = mapOf(CityId.DELHI to mapOf(GoodId.KESAR to 2)),
         holdings = mapOf(GoodId.ONIONS to 3, GoodId.GOLD to 1),
+        rumours = listOf(Rumour(CityId.SRINAGAR, GoodId.KESAR, landsOnDay = 15, basisPoints = 6_000)),
     )
 
     @Test
@@ -182,6 +184,34 @@ class RunStoreTest {
             .commit()
 
         assertEquals(0, store.loadRun()!!.debtDueDay)
+    }
+
+    @Test
+    fun `a run saved before rumours still loads, with nothing heard`() {
+        // What format version 5 wrote: the collector's clock, no rumours.
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("runs", 0)
+            .edit()
+            .putInt("version", 5)
+            .putBoolean("run.present", true)
+            .putLong("run.seed", 42)
+            .putInt("run.day", 12)
+            .putString("run.city", "DELHI")
+            .putLong("run.cash", 42_000)
+            .putLong("run.debt", 5_000)
+            .putInt("run.dueDay", 22)
+            .putLong("run.bank", 8_000)
+            .putString("run.transport", "TRUNK")
+            .putLong("run.rng", 7)
+            .putString("run.shifts", "MUMBAI:ONIONS:2500")
+            .putString("run.godowns", "DELHI>KESAR:2")
+            .putString("run.holdings", "ONIONS:3,GOLD:1")
+            .commit()
+
+        val loaded = store.loadRun()!!
+
+        assertTrue(loaded.rumours.isEmpty())
+        assertEquals(22, loaded.debtDueDay)
     }
 
     @Test

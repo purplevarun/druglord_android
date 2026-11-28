@@ -61,6 +61,17 @@ data class PriceShift(
 enum class EventHeadline { MONSOON, BUMPER_HARVEST, DIWALI, WEDDING_SEASON }
 
 /**
+ * Word on the street that a price will swing: a shift waiting for its day. Told as a
+ * [GameEvent.RumourTip] when heard; it becomes a [PriceShift] when [landsOnDay] arrives.
+ */
+data class Rumour(
+    val city: CityId,
+    val good: GoodId,
+    val landsOnDay: Int,
+    val basisPoints: Int,
+)
+
+/**
  * Something that happened to the trader on a day that went wrong (or lucky). The state
  * is already changed by the time the event is shown; it exists only to be narrated.
  */
@@ -84,5 +95,26 @@ sealed interface GameEvent {
         val good: GoodId,
         val basisPoints: Int,
         val headline: EventHeadline,
+    ) : GameEvent
+
+    /**
+     * Word on the street: this good will turn [up] (dear) or down (cheap) in [city]
+     * within days. When [lands] it is true and schedules the swing; otherwise a dud —
+     * the trader cannot tell which until the day comes and goes.
+     */
+    data class RumourTip(
+        val city: CityId,
+        val good: GoodId,
+        val up: Boolean,
+        val landsOnDay: Int,
+        val basisPoints: Int,
+        val lands: Boolean,
+    ) : GameEvent
+
+    /** A rumour's day arrived and the swing landed: told when the word proves right. */
+    data class RumourLanded(
+        val city: CityId,
+        val good: GoodId,
+        val basisPoints: Int,
     ) : GameEvent
 }

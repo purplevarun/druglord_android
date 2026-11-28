@@ -67,4 +67,31 @@ class MarketTest {
             }
         }
     }
+
+    @Test
+    fun `a city's speciality is the good its factor prices lowest`() {
+        assertEquals(GoodId.KESAR, GameConstants.specialityOf(CityId.SRINAGAR))
+        assertEquals(GoodId.ONIONS, GameConstants.specialityOf(CityId.MUMBAI))
+        for (city in CityId.entries) {
+            val speciality = GameConstants.specialityOf(city)!!
+            val factors = GameConstants.CITY_PRICE_FACTORS.getValue(city)
+            assertEquals(factors.minByOrNull { (_, factor) -> factor }!!.key, speciality)
+        }
+    }
+
+    @Test
+    fun `the movers list ranks the day's biggest swings`() {
+        val state = RunState.newRun(seed = 7)
+        val movers = state.movers()
+        assertTrue(movers.isNotEmpty())
+        assertTrue(movers.none { (_, percent) -> percent == 0 })
+        assertEquals(
+            movers.map { kotlin.math.abs(it.second) },
+            movers.map { kotlin.math.abs(it.second) }.sortedDescending(),
+        )
+        assertEquals(
+            GoodId.entries.count { state.changePercentOf(it) != 0 },
+            movers.size,
+        )
+    }
 }

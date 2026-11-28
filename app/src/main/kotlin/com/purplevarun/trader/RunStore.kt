@@ -6,6 +6,7 @@ import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RankId
+import com.purplevarun.trader.engine.Rumour
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
 
@@ -24,6 +25,7 @@ data class BestRun(
  * Format 3 predates the godowns: a run saved then loads with nothing stored.
  * Format 4 predates the survival loop: a run saved then is endless now, and any debt it
  *   owes gets a fresh ten-day clock before the collector comes.
+ * Format 5 predates rumours: a run saved then loads with no word on the street.
  */
 class RunStore(context: Context) {
 
@@ -55,6 +57,7 @@ class RunStore(context: Context) {
             priceShifts = shiftsFromString(prefs.getString(KEY_RUN_SHIFTS, "")!!),
             godowns = godownsFromString(prefs.getString(KEY_RUN_GODOWNS, "")!!),
             holdings = holdingsFromString(prefs.getString(KEY_RUN_HOLDINGS, "")!!),
+            rumours = rumoursFromString(prefs.getString(KEY_RUN_RUMOURS, "")!!),
         )
     }.getOrNull()
 
@@ -74,6 +77,7 @@ class RunStore(context: Context) {
             .putString(KEY_RUN_SHIFTS, shiftsToString(run.priceShifts))
             .putString(KEY_RUN_GODOWNS, godownsToString(run.godowns))
             .putString(KEY_RUN_HOLDINGS, holdingsToString(run.holdings))
+            .putString(KEY_RUN_RUMOURS, rumoursToString(run.rumours))
             .apply()
     }
 
@@ -146,10 +150,23 @@ class RunStore(context: Context) {
                 GoodId.valueOf(good) to quantity.toInt()
             }
 
+    /** "SRINAGAR>KESAR:5:6000" — one rumour per ';' entry: city, good, day, basis points. */
+    private fun rumoursToString(rumours: List<Rumour>): String =
+        rumours.joinToString(";") { "${it.city.name}>${it.good.name}:${it.landsOnDay}:${it.basisPoints}" }
+
+    private fun rumoursFromString(saved: String): List<Rumour> =
+        saved.split(";")
+            .filter { it.isNotEmpty() }
+            .map { entry ->
+                val (city, rest) = entry.split(">")
+                val (good, landsOnDay, basisPoints) = rest.split(":")
+                Rumour(CityId.valueOf(city), GoodId.valueOf(good), landsOnDay.toInt(), basisPoints.toInt())
+            }
+
     companion object {
         const val MAX_BEST_RUNS = 5
         private const val PREFS_NAME = "runs"
-        private const val FORMAT_VERSION = 5
+        private const val FORMAT_VERSION = 6
         private const val KEY_VERSION = "version"
         private const val KEY_RUN_PRESENT = "run.present"
         private const val KEY_RUN_SEED = "run.seed"
@@ -164,6 +181,7 @@ class RunStore(context: Context) {
         private const val KEY_RUN_SHIFTS = "run.shifts"
         private const val KEY_RUN_GODOWNS = "run.godowns"
         private const val KEY_RUN_HOLDINGS = "run.holdings"
+        private const val KEY_RUN_RUMOURS = "run.rumours"
         private const val KEY_BEST_COUNT = "best.count"
         private const val KEY_BEST_NET = "best.net"
         private const val KEY_BEST_DAYS = "best.days"

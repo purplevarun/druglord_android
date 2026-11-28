@@ -256,6 +256,7 @@ object TestTags {
     const val RAIL_MAP = "railMap"
     const val MARKET_DRAWER = "marketDrawer"
     const val MARKET = "market"
+    const val MARKET_MOVERS = "marketMovers"
     const val MARKET_DONE = "marketDone"
     const val TRAVEL_SHEET = "travelSheet"
     const val BOARD_TRAIN = "boardTrain"

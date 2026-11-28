@@ -56,6 +56,8 @@ private fun eventTitleRes(event: GameEvent): Int = when (event) {
     is GameEvent.Checkpost -> R.string.event_checkpost_title
     is GameEvent.Bandh -> R.string.event_bandh_title
     is GameEvent.PriceSwing -> eventHeadlineRes(event.headline)
+    is GameEvent.RumourTip -> R.string.event_rumour_title
+    is GameEvent.RumourLanded -> R.string.event_rumour_landed_title
 }
 
 @Composable
@@ -84,6 +86,25 @@ private fun eventBody(event: GameEvent): String = when (event) {
         } else {
             stringResource(R.string.event_price_down_body, good, city, percent)
         }
+    }
+    is GameEvent.RumourTip -> {
+        val good = stringResource(goodNameRes(event.good)).lowercase()
+        val city = stringResource(cityNameRes(event.city))
+        stringResource(
+            if (event.up) R.string.event_rumour_up else R.string.event_rumour_down,
+            good,
+            city,
+        )
+    }
+    is GameEvent.RumourLanded -> {
+        val good = stringResource(goodNameRes(event.good)).lowercase()
+        val city = stringResource(cityNameRes(event.city))
+        stringResource(
+            if (event.basisPoints > 0) R.string.event_rumour_landed_up else R.string.event_rumour_landed_down,
+            good,
+            abs(event.basisPoints) / 100,
+            city,
+        )
     }
 }
 

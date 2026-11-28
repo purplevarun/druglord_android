@@ -22,6 +22,7 @@ import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.Outcome
 import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RailNetwork
+import com.purplevarun.trader.engine.Rumour
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
 
@@ -235,7 +236,7 @@ fun GameScreenContent(
 private const val PHASE_NEW_RUN = "newRun"
 private const val PHASE_PLAYING = "playing"
 private const val PHASE_ENDED = "ended"
-private const val SAVED_FIELDS_BEFORE_HOLDINGS = 11
+private const val SAVED_FIELDS_BEFORE_HOLDINGS = 12
 
 private val PhaseSaver = listSaver<Phase, Any>(
     save = { phase ->
@@ -313,6 +314,7 @@ private fun runToFields(run: RunState): List<Any> = listOf<Any>(
     run.godowns.entries.joinToString(";") { (city, goods) ->
         "${city.name}>" + goods.entries.joinToString(",") { (good, quantity) -> "${good.name}:$quantity" }
     },
+    run.rumours.joinToString(";") { "${it.city.name}>${it.good.name}:${it.landsOnDay}:${it.basisPoints}" },
 ) + GoodId.entries.map { run.held(it) }
 
 private fun fieldsToRun(saved: List<Any>): RunState = RunState(
@@ -346,4 +348,11 @@ private fun fieldsToRun(saved: List<Any>): RunState = RunState(
         .mapIndexed { index, good -> good to saved[SAVED_FIELDS_BEFORE_HOLDINGS + index] as Int }
         .filter { (_, quantity) -> quantity > 0 }
         .toMap(),
+    rumours = (saved[11] as String).split(";")
+        .filter { it.isNotEmpty() }
+        .map { entry ->
+            val (city, rest) = entry.split(">")
+            val (good, landsOnDay, basisPoints) = rest.split(":")
+            Rumour(CityId.valueOf(city), GoodId.valueOf(good), landsOnDay.toInt(), basisPoints.toInt())
+        },
 )

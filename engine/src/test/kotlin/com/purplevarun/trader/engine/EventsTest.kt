@@ -4,6 +4,8 @@ import com.purplevarun.trader.engine.GameEvent.Bandh
 import com.purplevarun.trader.engine.GameEvent.Checkpost
 import com.purplevarun.trader.engine.GameEvent.Pickpocket
 import com.purplevarun.trader.engine.GameEvent.PriceSwing
+import com.purplevarun.trader.engine.GameEvent.RumourLanded
+import com.purplevarun.trader.engine.GameEvent.RumourTip
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -67,6 +69,57 @@ class EventsTest {
         )
     }
 
+    // --- Rumours: word on the street, mostly true ---
+
+    @Test
+    fun `a true rumour schedules a swing in the named city`() {
+        val tip = RumourTip(
+            CityId.SRINAGAR, GoodId.KESAR, up = true,
+            landsOnDay = start.day + 3, basisPoints = 6_000, lands = true,
+        )
+        val after = Game.applyEvent(start, tip)
+        assertEquals(listOf(Rumour(CityId.SRINAGAR, GoodId.KESAR, start.day + 3, 6_000)), after.rumours)
+    }
+
+    @Test
+    fun `a dud rumour schedules nothing`() {
+        val tip = RumourTip(
+            CityId.SRINAGAR, GoodId.KESAR, up = true,
+            landsOnDay = start.day + 3, basisPoints = 6_000, lands = false,
+        )
+        val after = Game.applyEvent(start, tip)
+        assertTrue(after.rumours.isEmpty())
+    }
+
+    @Test
+    fun `a rumour lands when its day arrives and is told`() {
+        val rumoured = start.copy(
+            rumours = listOf(Rumour(CityId.SRINAGAR, GoodId.KESAR, landsOnDay = 2, basisPoints = 5_000)),
+        )
+        val outcome = Game.applyQuietly(rumoured, Action.Travel(CityId.DELHI))
+        check(outcome is Outcome.Done)
+
+        // One rail day put the run on day 2: the swing landed in Srinagar, away from us.
+        assertTrue(outcome.state.rumours.isEmpty())
+        assertEquals(5_000, outcome.state.shiftForIn(CityId.SRINAGAR, GoodId.KESAR))
+        assertEquals(
+            listOf(RumourLanded(CityId.SRINAGAR, GoodId.KESAR, 5_000)),
+            outcome.events.filterIsInstance<RumourLanded>(),
+        )
+    }
+
+    @Test
+    fun `a rumour waits quietly until its day`() {
+        val rumoured = start.copy(
+            rumours = listOf(Rumour(CityId.SRINAGAR, GoodId.KESAR, landsOnDay = 5, basisPoints = 5_000)),
+        )
+        val outcome = Game.applyQuietly(rumoured, Action.Travel(CityId.DELHI))
+        check(outcome is Outcome.Done)
+
+        assertEquals(1, outcome.state.rumours.size)
+        assertEquals(0, outcome.state.shiftForIn(CityId.SRINAGAR, GoodId.KESAR))
+    }
+
     // --- Saturation ---
 
     @Test
@@ -127,7 +180,7 @@ class EventsTest {
     fun `the dice do fire, and across seeds every event family happens`() {
         val kinds = mutableSetOf<String>()
         var seed = 1L
-        while (kinds.size < 4 && seed < 100_000) {
+        while (kinds.size < 5 && seed < 100_000) {
             val outcome = Game.apply(RunState.newRun(seed = seed), Action.Travel(CityId.SRINAGAR))
             if (outcome is Outcome.Done) {
                 outcome.events.forEach { kinds.add(it::class.simpleName!!) }
@@ -135,7 +188,7 @@ class EventsTest {
             seed++
         }
         assertEquals(
-            setOf("Pickpocket", "Checkpost", "Bandh", "PriceSwing"),
+            setOf("Pickpocket", "Checkpost", "Bandh", "PriceSwing", "RumourTip"),
             kinds,
         )
     }

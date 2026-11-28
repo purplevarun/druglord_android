@@ -18,9 +18,11 @@ import com.purplevarun.trader.engine.Action
 import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.Game
 import com.purplevarun.trader.engine.GameConstants
+import com.purplevarun.trader.engine.GameEvent
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.Outcome
 import com.purplevarun.trader.engine.PriceShift
+import com.purplevarun.trader.engine.Rumour
 import com.purplevarun.trader.engine.RunState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -561,6 +563,50 @@ class GameFlowTest {
 
         compose.onNodeWithText("Onions · 30 stored").assertExists()
         compose.onNodeWithText("Onions · 20 carried").assertExists()
+    }
+
+    @Test
+    fun `the mandi names its cheap buy and its movers`() {
+        start()
+        openMarket()
+
+        // Mumbai's lowest factor is onions — the header says so, and the day's
+        // movers tick beside it.
+        compose.onNodeWithText("the cheap buy here: onions").assertExists()
+        compose.onNodeWithTag(TestTags.MARKET_MOVERS).assertExists()
+    }
+
+    @Test
+    fun `word on the street is told in a sheet`() {
+        // Find a dice count where the next move brings a rumour — the dice are deterministic.
+        val lucky = (0L..500L).first { rolls ->
+            val outcome = Game.apply(newRun.copy(rngRolls = rolls), Action.Buy(GoodId.ONIONS, 1))
+            outcome is Outcome.Done && outcome.events.any { it is GameEvent.RumourTip }
+        }
+        start(newRun.copy(rngRolls = lucky))
+        openMarket()
+
+        compose.onNodeWithContentDescription("Buy one Onions").performClick()
+
+        compose.onNodeWithTag(TestTags.EVENT_SHEET).assertExists()
+        compose.onNodeWithText("word on the street").assertExists()
+    }
+
+    @Test
+    fun `the word proves right when its day comes`() {
+        // Due already: the first move lands it, before any luck of its own.
+        start(
+            newRun.copy(
+                rumours = listOf(Rumour(CityId.MUMBAI, GoodId.ONIONS, landsOnDay = 1, basisPoints = 5_000)),
+            ),
+        )
+        openMarket()
+
+        compose.onNodeWithContentDescription("Buy one Onions").performClick()
+
+        compose.onNodeWithTag(TestTags.EVENT_SHEET).assertExists()
+        compose.onNodeWithText("the word was right").assertExists()
+        compose.onNodeWithText("onions is up 50% in Mumbai.", substring = true).assertExists()
     }
 
     @Test

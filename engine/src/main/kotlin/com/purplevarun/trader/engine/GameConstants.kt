@@ -87,6 +87,18 @@ object GameConstants {
     const val CHECKPOST_SEIZE_SHARE = 0.10
     const val BANDH_EXTRA_DAYS = 1
 
+    // Rumours: word on the street that a price will swing within days
+    /** The share of rumours that are duds: told, but nothing ever lands. */
+    const val RUMOUR_DUD_CHANCE = 0.25
+    /** The share of rumours that call a fall rather than a rise. */
+    const val RUMOUR_DOWN_CHANCE = 0.3
+    /** How many days out a rumour lands, at random between these. */
+    const val RUMOUR_DAYS_MIN = 2
+    const val RUMOUR_DAYS_MAX = 5
+    /** The swing a true rumour lands, up or down, in basis points. */
+    const val RUMOUR_BP_MIN = 3_000
+    const val RUMOUR_BP_MAX = 9_000
+
     // Price wobbles, in basis points (10,000 = the price itself)
     /** A spike adds this much at random; a crash takes this much away. */
     const val PRICE_SPIKE_BP_MIN = 4_000
@@ -144,6 +156,10 @@ object GameConstants {
         ),
         CityId.HYDERABAD to mapOf(GoodId.COTTON to 0.7, GoodId.BASMATI to 1.2, GoodId.SILK_SAREES to 1.15),
     )
+
+    /** The good a city prices lowest — its speciality, the thing that comes cheap here. */
+    fun specialityOf(city: CityId): GoodId? =
+        CITY_PRICE_FACTORS[city]?.minByOrNull { (_, factor) -> factor }?.key
 
     /** Real coordinates, in degrees. The app projects these onto the map. */
     val CITIES: List<City> = listOf(

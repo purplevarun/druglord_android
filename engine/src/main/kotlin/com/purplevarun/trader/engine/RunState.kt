@@ -21,6 +21,8 @@ data class RunState(
     val godowns: Map<CityId, Map<GoodId, Int>>,
     /** Only goods actually carried are listed, each with a quantity of at least one. */
     val holdings: Map<GoodId, Int>,
+    /** Word on the street, still waiting for its day. */
+    val rumours: List<Rumour>,
 ) {
     val luggageCapacity: Int get() = GameConstants.transport(transport).capacity
 
@@ -65,6 +67,12 @@ data class RunState(
 
     fun changePercentOf(good: GoodId): Int = Market.changePercent(seed, day, city, good)
 
+    /** The goods that moved most against yesterday here, biggest first, zero moves left out. */
+    fun movers(): List<Pair<GoodId, Int>> = GoodId.entries
+        .map { it to changePercentOf(it) }
+        .filter { (_, percent) -> percent != 0 }
+        .sortedByDescending { (_, percent) -> abs(percent) }
+
     /**
      * Cash, plus savings and everything owned, less debt. Carried goods are worth today's
      * local price; stashed goods are worth the price in the city they are stored in.
@@ -102,6 +110,7 @@ data class RunState(
             priceShifts = emptyList(),
             godowns = emptyMap(),
             holdings = emptyMap(),
+            rumours = emptyList(),
         )
     }
 }
