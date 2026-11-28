@@ -38,6 +38,9 @@ Needs JDK 17 and the Android SDK (platform 36).
 - `./gradlew test`: engine tests and UI tests.
 - `./gradlew :app:assembleRelease`: release APK, signed only when the local keystore files exist.
 - `python scripts/sync_agent_skills.py --check`: verify the vendored agent skills.
+- `python scripts/release.py <major.minor.patch>`: cut a release — bumps the version in
+  `app/build.gradle.kts`, runs the suite, builds and checks the signed APK, tags `v<version>`,
+  pushes, and attaches `saudagar-<version>.apk` to a GitHub release. `--dry-run` shows the plan.
 
 ## Agent skills
 

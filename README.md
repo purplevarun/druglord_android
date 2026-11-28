@@ -44,3 +44,12 @@ the build machine. Without them (CI, a fresh clone) the release APK is built uns
 Back the keystore and its properties file up somewhere outside the repo. If they are lost,
 a new key has to be made, and anyone with the game installed must uninstall it before they
 can install an update.
+
+## Releasing
+
+    python scripts/release.py 1.0.0   # bumps the version, tests, builds, tags, ships
+
+The script rewrites `versionCode`/`versionName` in `app/build.gradle.kts`, runs the full
+suite, builds and signature-checks the APK, tags `v1.0.0`, pushes, and attaches
+`saudagar-1.0.0.apk` to a GitHub release. Version codes are `major*10000 + minor*100 +
+patch`, so every semver bump also rises numerically.
