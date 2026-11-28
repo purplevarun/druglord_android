@@ -249,8 +249,11 @@ then a check on the emulator, then commit and push to `main`.
    PayCollector settles debt + keep atomically, passive debt gets a deadline, borrowing is
    capped at ₹50,000, `maxBuyable` prices post-shift. Factor spreads compressed to ~0.75–1.25,
    transports ₹6k/₹25k/₹90k, chai marked SOURCED (₹60–103/kg, 2000 Calcutta auctions).
-10. **Releases:** version numbering and a script that builds the signed APK and attaches it to
-    a GitHub release.
+10. ~~Releases.~~ **Done** in `21b050c` + `c837a2f` (issue #10): `scripts/release.py
+    <major.minor.patch>` bumps the version in `app/build.gradle.kts` (versionCode is
+    major·10000+minor·100+patch), runs the suite, builds and signature-checks the APK,
+    tags `vX.Y.Z`, pushes, and attaches `saudagar-X.Y.Z.apk` to a GitHub release.
+    **v1.0.0 shipped** — the first tagged release.
 
 ## This machine
 
