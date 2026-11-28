@@ -1,5 +1,7 @@
 package com.purplevarun.trader.engine
 
+import kotlin.math.abs
+
 /** Everything about a run in progress. Prices are not stored: they follow from the seed. */
 data class RunState(
     val seed: Long,
@@ -10,6 +12,10 @@ data class RunState(
     val debtRupees: Long,
     val bankRupees: Long,
     val transport: TransportId,
+    /** How many event rolls this run has made; the next roll's luck comes from seed + rngRolls. */
+    val rngRolls: Long,
+    /** Local price wobbles from news and saturation, still in effect. */
+    val priceShifts: List<PriceShift>,
     /** Only goods actually carried are listed, each with a quantity of at least one. */
     val holdings: Map<GoodId, Int>,
 ) {
@@ -27,7 +33,16 @@ data class RunState(
 
     fun held(good: GoodId): Int = holdings[good] ?: 0
 
-    fun priceOf(good: GoodId): Long = Market.price(seed, day, city, good)
+    /** The total shift on [good] in this city right now, capped so a price stays sane. */
+    fun shiftFor(good: GoodId): Int = priceShifts
+        .filter { it.city == city && it.good == good }
+        .sumOf { it.basisPoints }
+        .coerceIn(-GameConstants.PRICE_SHIFT_CAP_BP, GameConstants.PRICE_SHIFT_CAP_BP)
+
+    fun priceOf(good: GoodId): Long {
+        val base = Market.price(seed, day, city, good)
+        return (base * (10_000 + shiftFor(good)) / 10_000).coerceAtLeast(1)
+    }
 
     fun changePercentOf(good: GoodId): Int = Market.changePercent(seed, day, city, good)
 
@@ -56,6 +71,8 @@ data class RunState(
             debtRupees = GameConstants.STARTING_DEBT_RUPEES,
             bankRupees = 0,
             transport = GameConstants.STARTING_TRANSPORT,
+            rngRolls = 0,
+            priceShifts = emptyList(),
             holdings = emptyMap(),
         )
     }

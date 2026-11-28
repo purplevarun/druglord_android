@@ -46,3 +46,43 @@ data class Transport(
     val capacity: Int,
     val priceRupees: Long,
 )
+
+/**
+ * A local price wobble, in basis points (1,000 = +10%), keyed to one good in one city.
+ * Saturation adds small shifts; news adds big ones. Both halve every day on the rails.
+ */
+data class PriceShift(
+    val city: CityId,
+    val good: GoodId,
+    val basisPoints: Int,
+)
+
+/** What a price event reads like in the papers. */
+enum class EventHeadline { MONSOON, BUMPER_HARVEST, DIWALI, WEDDING_SEASON }
+
+/**
+ * Something that happened to the trader on a day that went wrong (or lucky). The state
+ * is already changed by the time the event is shown; it exists only to be narrated.
+ */
+sealed interface GameEvent {
+    /** On the train they lifted some of the cash. The bank's money is never touched. */
+    data class Pickpocket(val lostRupees: Long) : GameEvent
+
+    /** The police at a checkpost: a cash bribe, or seized goods when the pocket was empty. */
+    data class Checkpost(
+        val bribeRupees: Long,
+        val seizedGood: GoodId?,
+        val seizedUnits: Int,
+    ) : GameEvent
+
+    /** The train (or the town) stood still an extra day. The debt kept growing meanwhile. */
+    data class Bandh(val extraDays: Int) : GameEvent
+
+    /** News moved a price in one city: basis points (1,000 = +10%, negative = down). */
+    data class PriceSwing(
+        val city: CityId,
+        val good: GoodId,
+        val basisPoints: Int,
+        val headline: EventHeadline,
+    ) : GameEvent
+}

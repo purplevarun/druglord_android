@@ -19,8 +19,11 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.purplevarun.trader.BestRun
 import com.purplevarun.trader.engine.CityId
+import com.purplevarun.trader.engine.EventHeadline
 import com.purplevarun.trader.engine.GameConstants
+import com.purplevarun.trader.engine.GameEvent
 import com.purplevarun.trader.engine.GoodId
+import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RankId
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
@@ -56,6 +59,7 @@ class ScreenLayoutTest(private val case: Case) {
         SAHUKAR(TestTags.borrow(1_000), showsMap = true),
         BANK(TestTags.deposit(1_000), showsMap = true),
         LUGGAGE(TestTags.buyTransport(TransportId.TRUNK), showsMap = true),
+        EVENT(TestTags.GOT_IT_EVENT, showsMap = true),
         NEW_RUN(TestTags.START_RUN, showsMap = false),
         ENDED(TestTags.NEW_RUN, showsMap = false),
         ;
@@ -73,6 +77,14 @@ class ScreenLayoutTest(private val case: Case) {
             SAHUKAR -> Phase.Playing(run, Overlay.Sahukar)
             BANK -> Phase.Playing(run, Overlay.Bank)
             LUGGAGE -> Phase.Playing(run, Overlay.Luggage)
+            EVENT -> Phase.Playing(
+                run,
+                Overlay.None,
+                pendingEvents = listOf(
+                    GameEvent.Checkpost(bribeRupees = 0, seizedGood = GoodId.SILK_SAREES, seizedUnits = 4),
+                    GameEvent.PriceSwing(CityId.BANGALORE, GoodId.ONIONS, 4_000, EventHeadline.MONSOON),
+                ),
+            )
             NEW_RUN -> Phase.NewRun
             ENDED -> Phase.Ended(run)
         }
@@ -115,6 +127,8 @@ class ScreenLayoutTest(private val case: Case) {
             debtRupees = 12_345_678,
             bankRupees = 8_765_432,
             transport = TransportId.JHOLA,
+            rngRolls = 40,
+            priceShifts = listOf(PriceShift(CityId.BANGALORE, GoodId.ONIONS, 2_500)),
             holdings = mapOf(GoodId.SILK_SAREES to 40, GoodId.GOLD to 30, GoodId.ONIONS to 29),
         )
 
@@ -157,6 +171,7 @@ class ScreenLayoutTest(private val case: Case) {
                     bestRuns = CROWDED_BEST_RUNS,
                     onAction = {},
                     onOverlayChange = {},
+                    onEventDismissed = {},
                     onStartRun = {},
                     onEndRun = {},
                     onNewRun = {},

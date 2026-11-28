@@ -61,6 +61,34 @@ object GameConstants {
 
     fun transport(id: TransportId): Transport = TRANSPORTS.first { it.id == id }
 
+    // Random events: the odds are first guesses, tuned in the balance pass
+    /** Chance of an event on each day spent on the rails. */
+    const val EVENT_CHANCE_PER_TRAVEL_DAY = 0.22
+    /** Chance of an event on each non-travel action, while you are in town. */
+    const val EVENT_CHANCE_PER_CITY_ACTION = 0.05
+
+    // What the dice can bring, and what it costs
+    const val PICKPOCKET_SHARE_MIN = 0.10
+    const val PICKPOCKET_SHARE_MAX = 0.30
+    const val CHECKPOST_BRIBE_SHARE = 0.15
+    const val CHECKPOST_MIN_BRIBE_RUPEES = 500L
+    const val CHECKPOST_SEIZE_SHARE = 0.10
+    const val BANDH_EXTRA_DAYS = 1
+
+    // Price wobbles, in basis points (10,000 = the price itself)
+    /** A spike adds this much at random; a crash takes this much away. */
+    const val PRICE_SPIKE_BP_MIN = 4_000
+    const val PRICE_SPIKE_BP_MAX = 12_000
+    const val PRICE_CRASH_BP_MIN = 2_000
+    const val PRICE_CRASH_BP_MAX = 6_000
+    /** Each unit bought or sold nudges the local price up or down by this much. */
+    const val SATURATION_BP_PER_UNIT = 10
+    /** Saturation and news together never move a price past this far. */
+    const val PRICE_SHIFT_CAP_BP = 6_000
+    /** What is left of a shift each day, and the stub too small to keep. */
+    const val PRICE_SHIFT_DAILY_DECAY = 0.5
+    const val PRICE_SHIFT_MIN_BP = 50
+
     /**
      * Base prices at year-2000 rupee levels, per trade unit.
      * SOURCED: cotton (2000-01 support price, RBI and Economic Survey), masala (black pepper,

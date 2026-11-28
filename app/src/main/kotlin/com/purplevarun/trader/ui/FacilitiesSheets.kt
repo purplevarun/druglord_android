@@ -66,7 +66,7 @@ fun SahukarSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.repay_amount, formatRupees(step)),
-                        enabled = Game.apply(state, Action.Repay(step)) is Outcome.Done,
+                        enabled = Game.check(state, Action.Repay(step)) == null,
                         onClick = { onAction(Action.Repay(step)) },
                         modifier = Modifier.testTag(TestTags.repay(step)),
                     )
@@ -121,7 +121,7 @@ fun BankSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.deposit_amount, formatRupees(step)),
-                        enabled = Game.apply(state, Action.Deposit(step)) is Outcome.Done,
+                        enabled = Game.check(state, Action.Deposit(step)) == null,
                         onClick = { onAction(Action.Deposit(step)) },
                         modifier = Modifier.testTag(TestTags.deposit(step)),
                     )
@@ -139,7 +139,7 @@ fun BankSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.withdraw_amount, formatRupees(step)),
-                        enabled = Game.apply(state, Action.Withdraw(step)) is Outcome.Done,
+                        enabled = Game.check(state, Action.Withdraw(step)) == null,
                         onClick = { onAction(Action.Withdraw(step)) },
                         modifier = Modifier.testTag(TestTags.withdraw(step)),
                     )
@@ -210,7 +210,7 @@ fun LuggageSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
                         AmountChip(
                             text = stringResource(R.string.action_buy),
                             label = stringResource(R.string.buy_transport, name),
-                            enabled = Game.apply(state, Action.BuyTransport(upgrade.id)) is Outcome.Done,
+                            enabled = Game.check(state, Action.BuyTransport(upgrade.id)) == null,
                             onClick = { onAction(Action.BuyTransport(upgrade.id)) },
                             modifier = Modifier.testTag(TestTags.buyTransport(upgrade.id)),
                         )
@@ -252,7 +252,7 @@ private fun AmountRow(verb: String, chips: @Composable FlowRowScope.() -> Unit) 
 /** A sheet's name on the left and its standing on the right, wrapping when narrow. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TitleLine(title: String, status: String) {
+fun TitleLine(title: String, status: String) {
     FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

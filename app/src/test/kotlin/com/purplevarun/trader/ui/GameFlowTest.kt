@@ -9,13 +9,18 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import com.purplevarun.trader.RunStore
+import com.purplevarun.trader.engine.Action
 import com.purplevarun.trader.engine.CityId
+import com.purplevarun.trader.engine.Game
 import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
+import com.purplevarun.trader.engine.Outcome
+import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RunState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -58,6 +63,13 @@ class GameFlowTest {
         .onNodeWithTag(TestTags.cityLabel(city), useUnmergedTree = true)
         .performSemanticsAction(SemanticsActions.OnClick)
 
+    /** Taps away whatever the dice told, so the next tap can land where it was aimed. */
+    private fun settleEvents() {
+        while (compose.onAllNodesWithTag(TestTags.EVENT_SHEET).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(TestTags.GOT_IT_EVENT).performClick()
+        }
+    }
+
     @Test
     fun `buying one of a good takes its price from cash and puts it in the luggage`() {
         val price = newRun.priceOf(GoodId.ONIONS)
@@ -65,6 +77,7 @@ class GameFlowTest {
         openMarket()
 
         compose.onNodeWithContentDescription("Buy one Onions").performClick()
+        settleEvents()
 
         compose.onNodeWithText("quintal · 1 held").assertExists()
         compose.onNodeWithText("Day 1 · ${formatRupees(10_000 - price)}").assertExists()
@@ -72,14 +85,17 @@ class GameFlowTest {
     }
 
     @Test
-    fun `selling one gives its price back`() {
+    fun `selling one gives its price back, give or take the market's cut`() {
         start()
         openMarket()
         compose.onNodeWithContentDescription("Buy one Cotton").performClick()
+        settleEvents()
 
         compose.onNodeWithContentDescription("Sell one Cotton").performClick()
+        settleEvents()
 
-        compose.onNodeWithText("Day 1 · ₹10,000").assertExists()
+        // The buy nudged the price up and the sell sold at base: a rupee of market impact.
+        compose.onNodeWithText("Day 1 · ₹9,999").assertExists()
         compose.onNodeWithContentDescription("Sell one Cotton").assertIsNotEnabled()
     }
 
@@ -100,6 +116,7 @@ class GameFlowTest {
 
         compose.onNodeWithText("1 day by train · direct").assertExists()
         compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+        settleEvents()
 
         compose.onNodeWithText("Day 2 of 60").assertExists()
         compose.onNodeWithText("Delhi mandi").assertExists()
@@ -130,6 +147,7 @@ class GameFlowTest {
 
         compose.onNodeWithText("Arrives 2 Jan 2000").assertExists()
         compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+        settleEvents()
 
         compose.onNodeWithText("Day 2 · endless").assertExists()
     }
@@ -165,6 +183,7 @@ class GameFlowTest {
         }
         openMarket()
         compose.onNodeWithContentDescription("Buy one Onions").performClick()
+        settleEvents()
 
         restorer.emulateSavedInstanceStateRestore()
 
@@ -282,6 +301,7 @@ class GameFlowTest {
         compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
 
         compose.onNodeWithTag(TestTags.borrow(1_000)).performClick()
+        settleEvents()
 
         compose.onNodeWithText("You owe ₹6,000").assertExists()
         compose.onNodeWithText("Cash ₹11,000 · Debt ₹6,000").assertExists()
@@ -296,6 +316,7 @@ class GameFlowTest {
         compose.onNodeWithTag(TestTags.repay(10_000)).assertIsNotEnabled()
 
         compose.onNodeWithTag(TestTags.REPAY_ALL).performClick()
+        settleEvents()
 
         compose.onNodeWithText("You owe nothing.").assertExists()
         compose.onNodeWithText("Cash ₹5,000").assertExists()
@@ -308,11 +329,13 @@ class GameFlowTest {
 
         compose.onNodeWithTag(TestTags.withdraw(1_000)).assertIsNotEnabled()
         compose.onNodeWithTag(TestTags.deposit(1_000)).performClick()
+        settleEvents()
 
         compose.onNodeWithText("In the bank ₹1,000").assertExists()
         compose.onNodeWithText("Cash ₹9,000").assertExists()
 
         compose.onNodeWithTag(TestTags.WITHDRAW_ALL).performClick()
+        settleEvents()
 
         compose.onNodeWithText("Nothing in the bank.").assertExists()
         compose.onNodeWithText("Cash ₹10,000").assertExists()
@@ -324,14 +347,17 @@ class GameFlowTest {
 
         compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
         compose.onNodeWithTag(TestTags.borrow(10_000)).performClick()
+        settleEvents()
         compose.onNodeWithText("Close").performClick()
 
         compose.onNodeWithTag(TestTags.PLACE_BANK).performClick()
         compose.onNodeWithTag(TestTags.deposit(10_000)).performClick()
+        settleEvents()
         compose.onNodeWithText("Close").performClick()
 
         tapCity(CityId.DELHI)
         compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+        settleEvents()
 
         // One day on the rails: the sahukar's 8% and the bank's 1%.
         compose.onNodeWithText("Cash ₹10,000 · Debt ₹16,200").assertExists()
@@ -350,6 +376,7 @@ class GameFlowTest {
 
         compose.onNodeWithTag(TestTags.buyTransport(com.purplevarun.trader.engine.TransportId.TRUNK))
             .performClick()
+        settleEvents()
 
         compose.onNodeWithText("Trunk · 0 of 250 filled").assertExists()
         compose.onNodeWithText("Cash ₹6,000 · Debt ₹5,000").assertExists()
@@ -357,5 +384,35 @@ class GameFlowTest {
         compose.onNodeWithText("Close").performClick()
         openMarket()
         compose.onNodeWithText("Luggage 0/250").assertExists()
+    }
+
+    @Test
+    fun `what the day brings is told in a sheet and tapped away`() {
+        // Find a dice count where the next move brings an event — the dice are deterministic.
+        val lucky = (0L..500L).first { rolls ->
+            val outcome = Game.apply(newRun.copy(rngRolls = rolls), Action.Buy(GoodId.ONIONS, 1))
+            outcome is Outcome.Done && outcome.events.isNotEmpty()
+        }
+        start(newRun.copy(rngRolls = lucky))
+        openMarket()
+
+        compose.onNodeWithContentDescription("Buy one Onions").performClick()
+
+        compose.onNodeWithTag(TestTags.EVENT_SHEET).assertExists()
+        compose.onNodeWithTag(TestTags.GOT_IT_EVENT).performClick()
+        compose.onNodeWithTag(TestTags.EVENT_SHEET).assertDoesNotExist()
+        compose.onNodeWithText("quintal · 1 held").assertExists()
+    }
+
+    @Test
+    fun `news on the price shows in the mandi`() {
+        val shifted = newRun.copy(
+            priceShifts = listOf(PriceShift(CityId.MUMBAI, GoodId.ONIONS, 5_000)),
+        )
+        start(shifted)
+        openMarket()
+
+        // Onions at +50% of their usual Mumbai price.
+        compose.onNodeWithText(formatRupees(shifted.priceOf(GoodId.ONIONS))).assertExists()
     }
 }

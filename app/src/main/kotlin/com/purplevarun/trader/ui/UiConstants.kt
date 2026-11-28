@@ -277,6 +277,8 @@ object TestTags {
     const val REPAY_ALL = "repayAll"
     const val DEPOSIT_ALL = "depositAll"
     const val WITHDRAW_ALL = "withdrawAll"
+    const val EVENT_SHEET = "eventSheet"
+    const val GOT_IT_EVENT = "gotItEvent"
 
     fun cityLabel(city: com.purplevarun.trader.engine.CityId) = "city_${city.name}"
     fun runLength(days: Int) = "runLength_$days"

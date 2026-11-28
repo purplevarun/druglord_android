@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
+import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
 import org.junit.Assert.assertEquals
@@ -30,6 +31,8 @@ class RunStoreTest {
         debtRupees = 5_000,
         bankRupees = 8_000,
         transport = TransportId.TRUNK,
+        rngRolls = 7,
+        priceShifts = listOf(PriceShift(CityId.MUMBAI, GoodId.ONIONS, 2_500)),
         holdings = mapOf(GoodId.ONIONS to 3, GoodId.GOLD to 1),
     )
 
@@ -70,6 +73,33 @@ class RunStoreTest {
         assertEquals(TransportId.JHOLA, loaded.transport)
         assertEquals(42_000L, loaded.cashRupees)
         assertEquals(3, loaded.held(GoodId.ONIONS))
+    }
+
+    @Test
+    fun `a run saved before the dice and the news still loads, untouched by either`() {
+        // What format version 2 wrote: bank and transport, no rolls and no price shifts.
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("runs", 0)
+            .edit()
+            .putInt("version", 2)
+            .putBoolean("run.present", true)
+            .putLong("run.seed", 42)
+            .putInt("run.day", 12)
+            .putInt("run.length", 90)
+            .putString("run.city", "DELHI")
+            .putLong("run.cash", 42_000)
+            .putLong("run.debt", 5_000)
+            .putLong("run.bank", 8_000)
+            .putString("run.transport", "TRUNK")
+            .putString("run.holdings", "ONIONS:3,GOLD:1")
+            .commit()
+
+        val loaded = store.loadRun()!!
+
+        assertEquals(0L, loaded.rngRolls)
+        assertTrue(loaded.priceShifts.isEmpty())
+        assertEquals(8_000L, loaded.bankRupees)
+        assertEquals(TransportId.TRUNK, loaded.transport)
     }
 
     @Test

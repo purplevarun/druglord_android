@@ -104,8 +104,8 @@ private fun MarketRow(state: RunState, good: Good, onBuy: (GoodId) -> Unit, onSe
     val name = stringResource(goodNameRes(good.id))
     val unit = stringResource(unitNameRes(good.unit))
     val held = state.held(good.id)
-    val canBuy = Game.apply(state, Action.Buy(good.id, 1)) is Outcome.Done
-    val canSell = Game.apply(state, Action.Sell(good.id, 1)) is Outcome.Done
+    val canBuy = Game.check(state, Action.Buy(good.id, 1)) == null
+    val canSell = Game.check(state, Action.Sell(good.id, 1)) == null
 
     InfoBesideOrAboveTrade(
         modifier = Modifier

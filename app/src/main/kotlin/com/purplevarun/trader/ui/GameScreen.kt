@@ -17,8 +17,10 @@ import com.purplevarun.trader.RunStore
 import com.purplevarun.trader.engine.Action
 import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.Game
+import com.purplevarun.trader.engine.GameEvent
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.Outcome
+import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RailNetwork
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
@@ -26,7 +28,16 @@ import com.purplevarun.trader.engine.TransportId
 /** Where the game is: picking a new run, mid-run, or looking at how a run ended. */
 sealed interface Phase {
     data object NewRun : Phase
-    data class Playing(val run: RunState, val overlay: Overlay) : Phase
+
+    /**
+     * Mid-run. [pendingEvents] are what the day brought, still waiting to be told; their
+     * effects are already in [run]. They are not saved: restoring mid-run skips the telling.
+     */
+    data class Playing(
+        val run: RunState,
+        val overlay: Overlay,
+        val pendingEvents: List<GameEvent> = emptyList(),
+    ) : Phase
     data class Ended(val run: RunState) : Phase
 }
 
@@ -67,10 +78,18 @@ fun GameScreen(store: RunStore, newRun: (Int) -> RunState) {
         onAction = { action ->
             val current = phase as? Phase.Playing ?: return@GameScreenContent
             val outcome = Game.apply(current.run, action)
-            if (outcome is Outcome.Done) phase = current.copy(run = outcome.state)
+            if (outcome is Outcome.Done) {
+                phase = current.copy(
+                    run = outcome.state,
+                    pendingEvents = current.pendingEvents + outcome.events,
+                )
+            }
         },
         onOverlayChange = { overlay ->
             (phase as? Phase.Playing)?.let { phase = it.copy(overlay = overlay) }
+        },
+        onEventDismissed = {
+            (phase as? Phase.Playing)?.let { phase = it.copy(pendingEvents = it.pendingEvents.drop(1)) }
         },
         onStartRun = { days -> phase = Phase.Playing(newRun(days), Overlay.None) },
         onEndRun = {
@@ -91,6 +110,7 @@ fun GameScreenContent(
     bestRuns: List<BestRun>,
     onAction: (Action) -> Unit,
     onOverlayChange: (Overlay) -> Unit,
+    onEventDismissed: () -> Unit,
     onStartRun: (Int) -> Unit,
     onEndRun: () -> Unit,
     onNewRun: () -> Unit,
@@ -156,6 +176,14 @@ fun GameScreenContent(
                     )
                     else -> {}
                 }
+                // What the day brought is told last, on top of whatever else is open.
+                phase.pendingEvents.firstOrNull()?.let { event ->
+                    EventSheet(
+                        event = event,
+                        moreAfter = phase.pendingEvents.size - 1,
+                        onDismissed = onEventDismissed,
+                    )
+                }
             }
         }
     }
@@ -164,7 +192,7 @@ fun GameScreenContent(
 private const val PHASE_NEW_RUN = "newRun"
 private const val PHASE_PLAYING = "playing"
 private const val PHASE_ENDED = "ended"
-private const val SAVED_FIELDS_BEFORE_HOLDINGS = 8
+private const val SAVED_FIELDS_BEFORE_HOLDINGS = 10
 
 private val PhaseSaver = listSaver<Phase, Any>(
     save = { phase ->
@@ -211,6 +239,8 @@ private fun stringToOverlay(saved: String): Overlay = when {
 private fun runToFields(run: RunState): List<Any> = listOf<Any>(
     run.seed, run.day, run.runLengthDays, run.city.name,
     run.cashRupees, run.debtRupees, run.bankRupees, run.transport.name,
+    run.rngRolls,
+    run.priceShifts.joinToString(",") { "${it.city.name}:${it.good.name}:${it.basisPoints}" },
 ) + GoodId.entries.map { run.held(it) }
 
 private fun fieldsToRun(saved: List<Any>): RunState = RunState(
@@ -222,6 +252,13 @@ private fun fieldsToRun(saved: List<Any>): RunState = RunState(
     debtRupees = saved[5] as Long,
     bankRupees = saved[6] as Long,
     transport = TransportId.valueOf(saved[7] as String),
+    rngRolls = saved[8] as Long,
+    priceShifts = (saved[9] as String).split(",")
+        .filter { it.isNotEmpty() }
+        .map { entry ->
+            val (city, good, basisPoints) = entry.split(":")
+            PriceShift(CityId.valueOf(city), GoodId.valueOf(good), basisPoints.toInt())
+        },
     holdings = GoodId.entries
         .mapIndexed { index, good -> good to saved[SAVED_FIELDS_BEFORE_HOLDINGS + index] as Int }
         .filter { (_, quantity) -> quantity > 0 }

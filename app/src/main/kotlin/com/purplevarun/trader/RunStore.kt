@@ -4,6 +4,7 @@ import android.content.Context
 import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GoodId
+import com.purplevarun.trader.engine.PriceShift
 import com.purplevarun.trader.engine.RankId
 import com.purplevarun.trader.engine.RunState
 import com.purplevarun.trader.engine.TransportId
@@ -20,6 +21,7 @@ data class BestRun(
  * The run in progress and the best-runs list, kept in SharedPreferences so both survive
  * the app being closed. No libraries: the file format is hand-rolled and versioned.
  * Format 1 predates the facilities: a run saved then loads with no savings and a jhola.
+ * Format 2 predates the dice and the news: a run saved then loads untouched by either.
  */
 class RunStore(context: Context) {
 
@@ -41,6 +43,8 @@ class RunStore(context: Context) {
             transport = prefs.getString(KEY_RUN_TRANSPORT, null)
                 ?.let { TransportId.valueOf(it) }
                 ?: GameConstants.STARTING_TRANSPORT,
+            rngRolls = prefs.getLong(KEY_RUN_RNG, 0),
+            priceShifts = shiftsFromString(prefs.getString(KEY_RUN_SHIFTS, "")!!),
             holdings = holdingsFromString(prefs.getString(KEY_RUN_HOLDINGS, "")!!),
         )
     }.getOrNull()
@@ -57,6 +61,8 @@ class RunStore(context: Context) {
             .putLong(KEY_RUN_DEBT, run.debtRupees)
             .putLong(KEY_RUN_BANK, run.bankRupees)
             .putString(KEY_RUN_TRANSPORT, run.transport.name)
+            .putLong(KEY_RUN_RNG, run.rngRolls)
+            .putString(KEY_RUN_SHIFTS, shiftsToString(run.priceShifts))
             .putString(KEY_RUN_HOLDINGS, holdingsToString(run.holdings))
             .apply()
     }
@@ -96,6 +102,17 @@ class RunStore(context: Context) {
 
     private fun bestKey(prefix: String, index: Int) = "$prefix.$index"
 
+    private fun shiftsToString(shifts: List<PriceShift>): String =
+        shifts.joinToString(",") { "${it.city.name}:${it.good.name}:${it.basisPoints}" }
+
+    private fun shiftsFromString(saved: String): List<PriceShift> =
+        saved.split(",")
+            .filter { it.isNotEmpty() }
+            .map { entry ->
+                val (city, good, basisPoints) = entry.split(":")
+                PriceShift(CityId.valueOf(city), GoodId.valueOf(good), basisPoints.toInt())
+            }
+
     private fun holdingsToString(holdings: Map<GoodId, Int>): String =
         holdings.entries.joinToString(",") { (good, quantity) -> "${good.name}:$quantity" }
 
@@ -110,7 +127,7 @@ class RunStore(context: Context) {
     companion object {
         const val MAX_BEST_RUNS = 5
         private const val PREFS_NAME = "runs"
-        private const val FORMAT_VERSION = 2
+        private const val FORMAT_VERSION = 3
         private const val KEY_VERSION = "version"
         private const val KEY_RUN_PRESENT = "run.present"
         private const val KEY_RUN_SEED = "run.seed"
@@ -121,6 +138,8 @@ class RunStore(context: Context) {
         private const val KEY_RUN_DEBT = "run.debt"
         private const val KEY_RUN_BANK = "run.bank"
         private const val KEY_RUN_TRANSPORT = "run.transport"
+        private const val KEY_RUN_RNG = "run.rng"
+        private const val KEY_RUN_SHIFTS = "run.shifts"
         private const val KEY_RUN_HOLDINGS = "run.holdings"
         private const val KEY_BEST_COUNT = "best.count"
         private const val KEY_BEST_NET = "best.net"

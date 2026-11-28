@@ -150,6 +150,23 @@
     <string name="unit_kilogram">kg</string>
     <string name="unit_hundred_grams">100 g</string>
 
+    <!-- What happened on the way -->
+    <string name="event_got_it">Got it</string>
+    <string name="event_more_to_tell">%1$d more to tell</string>
+    <string name="event_pickpocket_title">Pickpockets!</string>
+    <string name="event_pickpocket_body">Someone cut your pocket in the crowd — ₹%1$s gone. What is in the bank stayed safe.</string>
+    <string name="event_checkpost_title">Checkpost</string>
+    <string name="event_checkpost_bribe_body">The police stopped the train and took ₹%1$s of your cash to let it through.</string>
+    <string name="event_checkpost_seized_body">The police stopped the train and seized %1$d of your %2$s — no cash on you to buy them off.</string>
+    <string name="event_bandh_title">Bandh</string>
+    <string name="event_bandh_body">The town shut down and the train stood still — the trip took an extra day. Interest kept running meanwhile.</string>
+    <string name="event_price_up_body">Word in the %2$s mandi — %1$s is dearer now, up %3$d%%.</string>
+    <string name="event_price_down_body">Word in the %2$s mandi — %1$s is cheaper now, down %3$d%%.</string>
+    <string name="headline_monsoon">Monsoon</string>
+    <string name="headline_bumper_harvest">Bumper harvest</string>
+    <string name="headline_diwali">Diwali demand</string>
+    <string name="headline_wedding_season">Wedding season</string>
+
     <string-array name="month_abbreviations">
         <item>Jan</item>
         <item>Feb</item>

@@ -27,7 +27,7 @@ import com.purplevarun.trader.engine.RunState
 fun TravelSheet(state: RunState, destination: CityId, onBoard: () -> Unit, onDismiss: () -> Unit) {
     val route = RailNetwork.route(state.city, destination)
     val days = RailNetwork.travelDays(state.city, destination)
-    val canBoard = Game.apply(state, Action.Travel(destination)) is Outcome.Done
+    val canBoard = Game.check(state, Action.Travel(destination)) == null
 
     val daysText = pluralStringResource(R.plurals.trip_days, days, days)
     val changes = route.drop(1).dropLast(1)

@@ -25,53 +25,55 @@ class GameTest {
 
     @Test
     fun `buying takes the price from cash and puts the goods in the luggage`() {
-        val price = start.priceOf(ONIONS)
-        val after = done(Game.apply(start, Action.Buy(ONIONS, 3)))
-        assertEquals(10_000L - 3 * price, after.cashRupees)
+        val after = done(Game.applyQuietly(start, Action.Buy(ONIONS, 3)))
+        // The order nudged the price up a touch; the goods were charged at the moved price.
+        assertEquals(10_000L - 3 * after.priceOf(ONIONS), after.cashRupees)
         assertEquals(3, after.held(ONIONS))
         assertEquals(3, after.luggageUsed)
     }
 
     @Test
-    fun `selling on the same day what was just bought gives all the money back`() {
-        val bought = done(Game.apply(start, Action.Buy(COTTON, 2)))
-        val sold = done(Game.apply(bought, Action.Sell(COTTON, 2)))
-        assertEquals(10_000L, sold.cashRupees)
+    fun `selling back what was just bought loses a little to the market`() {
+        val bought = done(Game.applyQuietly(start, Action.Buy(COTTON, 2)))
+        val sold = done(Game.applyQuietly(bought, Action.Sell(COTTON, 2)))
+        // The buy pushed the price up and the sell pulled it back: the spread is the market's cut.
+        assertTrue(sold.cashRupees < 10_000)
+        assertTrue(sold.cashRupees >= 10_000 - bought.priceOf(COTTON))
         assertEquals(0, sold.held(COTTON))
         assertFalse("nothing left of a good means it is not listed at all", COTTON in sold.holdings)
     }
 
     @Test
     fun `buying does not change net worth on the same day`() {
-        val loaded = done(Game.apply(start, Action.Buy(COTTON, 4)))
+        val loaded = done(Game.applyQuietly(start, Action.Buy(COTTON, 4)))
         assertEquals(5_000L, start.netWorthRupees)
         assertEquals(5_000L, loaded.netWorthRupees)
     }
 
     @Test
     fun `you cannot spend more cash than you have`() {
-        rejected(Rejection.NOT_ENOUGH_CASH, Game.apply(start, Action.Buy(GOLD, 1)))
+        rejected(Rejection.NOT_ENOUGH_CASH, Game.applyQuietly(start, Action.Buy(GOLD, 1)))
     }
 
     @Test
     fun `you cannot carry more than the luggage holds`() {
         val rich = start.copy(cashRupees = 100_000_000)
-        val full = done(Game.apply(rich, Action.Buy(ONIONS, 100)))
-        rejected(Rejection.NOT_ENOUGH_LUGGAGE_SPACE, Game.apply(full, Action.Buy(ONIONS, 1)))
-        rejected(Rejection.NOT_ENOUGH_LUGGAGE_SPACE, Game.apply(rich, Action.Buy(COTTON, 101)))
+        val full = done(Game.applyQuietly(rich, Action.Buy(ONIONS, 100)))
+        rejected(Rejection.NOT_ENOUGH_LUGGAGE_SPACE, Game.applyQuietly(full, Action.Buy(ONIONS, 1)))
+        rejected(Rejection.NOT_ENOUGH_LUGGAGE_SPACE, Game.applyQuietly(rich, Action.Buy(COTTON, 101)))
     }
 
     @Test
     fun `you cannot sell more than you carry`() {
-        rejected(Rejection.NOT_ENOUGH_HELD, Game.apply(start, Action.Sell(ONIONS, 1)))
-        val two = done(Game.apply(start, Action.Buy(ONIONS, 2)))
-        rejected(Rejection.NOT_ENOUGH_HELD, Game.apply(two, Action.Sell(ONIONS, 3)))
+        rejected(Rejection.NOT_ENOUGH_HELD, Game.applyQuietly(start, Action.Sell(ONIONS, 1)))
+        val two = done(Game.applyQuietly(start, Action.Buy(ONIONS, 2)))
+        rejected(Rejection.NOT_ENOUGH_HELD, Game.applyQuietly(two, Action.Sell(ONIONS, 3)))
     }
 
     @Test
     fun `quantities must be at least one`() {
-        rejected(Rejection.NOT_A_POSITIVE_QUANTITY, Game.apply(start, Action.Buy(ONIONS, 0)))
-        rejected(Rejection.NOT_A_POSITIVE_QUANTITY, Game.apply(start, Action.Sell(ONIONS, -1)))
+        rejected(Rejection.NOT_A_POSITIVE_QUANTITY, Game.applyQuietly(start, Action.Buy(ONIONS, 0)))
+        rejected(Rejection.NOT_A_POSITIVE_QUANTITY, Game.applyQuietly(start, Action.Sell(ONIONS, -1)))
     }
 
     @Test
@@ -85,8 +87,8 @@ class GameTest {
 
     @Test
     fun `travelling moves you and spends the days the trip takes, keeping cash and goods`() {
-        val loaded = done(Game.apply(start, Action.Buy(ONIONS, 5)))
-        val arrived = done(Game.apply(loaded, Action.Travel(CityId.SRINAGAR)))
+        val loaded = done(Game.applyQuietly(start, Action.Buy(ONIONS, 5)))
+        val arrived = done(Game.applyQuietly(loaded, Action.Travel(CityId.SRINAGAR)))
         assertEquals(CityId.SRINAGAR, arrived.city)
         assertEquals(3, arrived.day)
         assertEquals(loaded.cashRupees, arrived.cashRupees)
@@ -96,13 +98,13 @@ class GameTest {
     @Test
     fun `you cannot take a trip that ends after the last day`() {
         val lastButOneDay = start.copy(day = 59)
-        assertEquals(60, done(Game.apply(lastButOneDay, Action.Travel(CityId.DELHI))).day)
-        rejected(Rejection.NOT_ENOUGH_DAYS, Game.apply(lastButOneDay, Action.Travel(CityId.SRINAGAR)))
+        assertEquals(60, done(Game.applyQuietly(lastButOneDay, Action.Travel(CityId.DELHI))).day)
+        rejected(Rejection.NOT_ENOUGH_DAYS, Game.applyQuietly(lastButOneDay, Action.Travel(CityId.SRINAGAR)))
     }
 
     @Test
     fun `travelling to where you already are is not a trip`() {
-        rejected(Rejection.ALREADY_THERE, Game.apply(start, Action.Travel(CityId.MUMBAI)))
+        rejected(Rejection.ALREADY_THERE, Game.applyQuietly(start, Action.Travel(CityId.MUMBAI)))
     }
 
     @Test
@@ -111,7 +113,7 @@ class GameTest {
         assertTrue(endless.isEndless)
         assertFalse(start.isEndless)
         val farAlong = endless.copy(day = 1_000)
-        assertEquals(1_001, done(Game.apply(farAlong, Action.Travel(CityId.DELHI))).day)
+        assertEquals(1_001, done(Game.applyQuietly(farAlong, Action.Travel(CityId.DELHI))).day)
     }
 
     @Test

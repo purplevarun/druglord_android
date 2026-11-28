@@ -6,6 +6,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import com.purplevarun.trader.R
 import com.purplevarun.trader.engine.CityId
+import com.purplevarun.trader.engine.EventHeadline
 import com.purplevarun.trader.engine.GameCalendar
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.RankId
@@ -58,6 +59,14 @@ fun transportNameRes(id: TransportId): Int = when (id) {
     TransportId.TRUNK -> R.string.transport_trunk
     TransportId.TEMPO -> R.string.transport_tempo
     TransportId.TRUCK -> R.string.transport_truck
+}
+
+@StringRes
+fun eventHeadlineRes(headline: EventHeadline): Int = when (headline) {
+    EventHeadline.MONSOON -> R.string.headline_monsoon
+    EventHeadline.BUMPER_HARVEST -> R.string.headline_bumper_harvest
+    EventHeadline.DIWALI -> R.string.headline_diwali
+    EventHeadline.WEDDING_SEASON -> R.string.headline_wedding_season
 }
 
 /** The calendar date of a day of the run, such as "12 Jan 2000". */
