@@ -215,11 +215,16 @@ X days and if u dont pay them back they will kill u."
   reset.
 - **Android 7 (API 24-25):** bold Gelasio renders as regular, because those versions cannot pick
   a weight from a variable font. Never tested on a real old phone.
-- **Agent skills:** never checked loading in Copilot, Devin or Windsurf, only that the files are
-  in each agent's folder. Some agents may need skills switched on in their settings.
-- **pstack is not added.** Its Claude Code version lives in `cursor/plugins` under
-  `harness/pstack/`. Check its licence before copying it into this repo the way
-  `scripts/sync_agent_skills.py` copies the Pocock skills.
+- **Agent skills:** confirmed loading in Devin (a Devin session saw `.devin/skills/` entries)
+  and Windsurf (its rules injected). Copilot untested; it may need skills switched on in its
+  settings.
+- **pstack checked and deliberately not vendored.** It's Lauren Tan's stack at
+  `github.com/cursor/plugins` under `pstack/` — MIT licensed (© Lauren Tan), so vendoring is
+  allowed with the notice kept, same as the Pocock skills. But it is a 68-skill routing stack
+  (poteto-mode, arena, swarm, interrogate, playbooks) that overlaps the curated set — `tdd`,
+  `interrogate` vs `code-review`, `technical-writing` vs `writing-for-agents`. If pieces are
+  wanted, adopt selectively (interrogate/arena/swarm have no equivalents here) using the same
+  pinned-commit + `LICENSE-pstack.txt` pattern in `sync_agent_skills.py`.
 - **The keystore is zipped, still on this Mac.** `~/Desktop/saudagar-keystore-backup-*.zip`
   holds `release.keystore` + `keystore.properties` (passwords inside, plaintext — treat it as a
   secret). It is not a real backup until moved off this machine. If the keystore is ever lost,
