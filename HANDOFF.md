@@ -225,10 +225,10 @@ X days and if u dont pay them back they will kill u."
   `interrogate` vs `code-review`, `technical-writing` vs `writing-for-agents`. If pieces are
   wanted, adopt selectively (interrogate/arena/swarm have no equivalents here) using the same
   pinned-commit + `LICENSE-pstack.txt` pattern in `sync_agent_skills.py`.
-- **The keystore is zipped, still on this Mac.** `~/Desktop/saudagar-keystore-backup-*.zip`
-  holds `release.keystore` + `keystore.properties` (passwords inside, plaintext — treat it as a
-  secret). It is not a real backup until moved off this machine. If the keystore is ever lost,
-  installed copies must be uninstalled before an update.
+- **The keystore exists only at the repo root.** `release.keystore` + `keystore.properties`
+  (gitignored) are the only copies — the user had all backup zips deleted. If they are lost,
+  installed copies must be uninstalled before an update; if they leak, the release key is
+  compromised.
 
 ## The plan
 
