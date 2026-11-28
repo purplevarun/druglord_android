@@ -2,7 +2,7 @@
 
 Context for the next agent or session picking up this repo. Read `AGENTS.md` first: it holds the
 rules. This file holds what is not written down anywhere else: why things are the way they are,
-the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `470c2bd`.
+the local machine, known gaps, and the plan. Last updated 28 Nov 2026, at commit `fc9f73e`.
 
 ## The goal
 
@@ -40,13 +40,15 @@ collector is the deadline. The run and the list survive the app being closed. De
 the commit history (`git log`); the main pieces:
 
 - `engine/`: `RunState` (the whole run: cash, debt, `debtDueDay`, bank, transport, godowns,
-  holdings, `rngRolls`, `priceShifts`; plus `livingCostPerDay`, `collectorDue`, `isBroke`,
-  `rank`), `Game.check` (pure validation) + `Game.apply` (check, move, then roll the dice;
-  `Outcome.Done` carries `events`), `chargingLiving` inside `applyMove` (every non-travel move
-  = 1 day at the city's rate; shortfalls land on debt), `Market`, `RailNetwork`, `GameCalendar`,
-  `GameConstants.RANK_THRESHOLDS`, `LIVING_COST_RUPEES` (per city), `COLLECTOR_AFTER_DAYS` (10),
-  `SURVIVAL_LOAN_RUPEES` (₹5,000), `TRANSPORTS`, `GODOWN_*`, the event constants, and
-  `Game.applyEvent` (internal test seam). `Action.PayCollector` pays the whole debt cash-first.
+  holdings, `rngRolls`, `priceShifts`, `rumours`; plus `livingCostPerDay`, `collectorDue`,
+  `isBroke`, `rank`, `movers()`), `Game.check` (pure validation) + `Game.apply` (check, move,
+  land due rumours, then roll the dice; `Outcome.Done` carries `events`), `chargingLiving`
+  inside `applyMove` (every non-travel move = 1 day at the city's rate; shortfalls land on
+  debt), `Market`, `RailNetwork`, `GameCalendar`, `GameConstants.RANK_THRESHOLDS`,
+  `LIVING_COST_RUPEES` (per city), `COLLECTOR_AFTER_DAYS` (10), `SURVIVAL_LOAN_RUPEES`
+  (₹5,000), `TRANSPORTS`, `GODOWN_*`, the event constants, `RUMOUR_*`, `specialityOf(city)`
+  (the lowest factor in `CITY_PRICE_FACTORS`), and `Game.applyEvent` (internal test seam).
+  `Action.PayCollector` pays the whole debt cash-first.
 - `app/`: `GameScreen` (`Phase`: `NewRun` / `Playing` / `Ended(run, ending)`; `Playing` queues
   `pendingEvents`; `Ending` = RETIRED/BROKE/COLLECTED; forced sheets render over events:
   `CollectorSheet` when `run.collectorDue`, else `BrokeSheet` when `run.isBroke`),
@@ -55,13 +57,36 @@ the commit history (`git log`); the main pieces:
   Luggage/Godown), `AmountSheet` (the exact-amount keypad; `KeypadSpec` = Market/Money/
   Godown), `EventSheet` (events + the collector and broke prompt sheets),
   `NewRunScreen` (no picker — every run is endless), `EndScreen` (per-ending line),
-  `RunStore` (SharedPreferences, hand-rolled format at **v5**; v1–v4 all load — v4 debts get
-  a fresh ten-day clock; `MAX_BEST_RUNS` = 5; `BestRun` has no run length any more).
-- Tests: 84 engine tests (including `SurvivalTest` and the 20,000-move simulation, which now
-  also plays `PayCollector`) and 2,290+ app tests (120 skipped, as designed).
+  `RunStore` (SharedPreferences, hand-rolled format at **v6**; v1–v5 all load — v4 debts get
+  a fresh ten-day clock, v5 hears no rumours; `MAX_BEST_RUNS` = 5; `BestRun` has no run
+  length any more).
+- Tests: 92 engine tests (including `SurvivalTest` and the 20,000-move simulation, which now
+  also plays `PayCollector`) and 2,300+ app tests (120 skipped, as designed).
   `./gradlew test` takes under a minute on this Mac. Engine tests that want a move without
   the dice use `Game.applyQuietly` (internal); UI tests drain event sheets with
   `settleEvents()`.
+
+### Decisions made for slice 7 (28 Nov 2026)
+
+The rest of the mockup — movers, rumours, specialities:
+
+- **Movers** (user: "u decide"): `RunState.movers()` = this mandi's biggest day-to-day
+  changes (the same `changePercentOf` each row shows), top 3 shown as "▲ onions 32% ·
+  ▼ chai 23%" under the market title. Honest data, no new state.
+- **Rumours** (user: hints at real swings): `GameEvent.RumourTip` joins the event table
+  (~20–30% of rolls). It names a city, a good, and a direction; `RUMOUR_*` constants set
+  2–5 days out at ±30–90%. `RUMOUR_DUD_CHANCE` = 25% — a dud is told but schedules
+  nothing, and the trader can never confirm which kind it heard. True rumours wait in
+  `RunState.rumours`; `landingRumours` runs after every move (in `apply` *and*
+  `applyQuietly` — a landing is the day's doing, not luck), turns the due ones into
+  `priceShifts` via the same `saturating` cap, and tells each with
+  `GameEvent.RumourLanded` ("the word was right").
+- **Specialities** (user: flavour + edge): the edge already existed — `CITY_PRICE_FACTORS`
+  gives every city its cheapest good (kesar 0.6 Srinagar … onions 0.7 Mumbai, verified by
+  `each city's speciality is cheapest there`). `specialityOf` derives the min factor so
+  the header line "the cheap buy here: onions" can never drift out of sync with it.
+- Placement (agent's call, user deferred): both lines live under the market title;
+  rumours arrive and land as event sheets.
 
 ### Decisions made for slice 6 (27 Nov 2026)
 
@@ -179,11 +204,10 @@ X days and if u dont pay them back they will kill u."
   luggage slots with every unit taking one slot, the city price table and each good's
   volatility, the living-cost table (₹60–₹120/city), the ten-day collector clock, the ₹5,000
   survival loan, 500-unit godowns at ₹50/day.
-- **From the mockups, not built:** the "movers" ticker, travel rumours, each city's
-  speciality line.
-- **Saved-state format is v5.** `RunStore` reads v1–v4 (v4 debts get a fresh ten-day clock,
-  earlier versions pick up the newer fields empty). A format change still needs a bump or
-  saved runs silently reset.
+- **The mockup is fully built.** Naming and balance are all that remain before releases.
+- **Saved-state format is v6.** `RunStore` reads v1–v5 (v4 debts get a fresh ten-day clock,
+  v5 loads with no rumours). A format change still needs a bump or saved runs silently
+  reset.
 - **Android 7 (API 24-25):** bold Gelasio renders as regular, because those versions cannot pick
   a weight from a variable font. Never tested on a real old phone.
 - **Agent skills:** never checked loading in Copilot, Devin or Windsurf, only that the files are
@@ -211,7 +235,8 @@ then a check on the emulator, then commit and push to `main`.
    every move, one loan at a time, the collector's ten-day pay-or-die, broke-or-borrow endings.
 6. ~~Exact amounts.~~ **Done** in `470c2bd` (issue #6): an "exact" chip + long-press on
    every amount row opens one shared keypad; confirms validate live; no Max button.
-7. **The rest of the mockup:** the movers ticker, rumours and city specialities.
+7. ~~The rest of the mockup.~~ **Done** in `fc9f73e` (issue #7): movers ticker and
+   speciality line in the market header; rumours that land (or dud) as real swings.
 8. **Naming pass with the user:** the game title, goods, ranks and the repo name.
 9. **Balance pass:** use the simulation to tune prices and risk, and verify the estimated
    prices. Now bigger: living costs vs profit margins, the 10-day clock, the survival loan.
@@ -257,10 +282,9 @@ the earlier notes describe.
 
 ## Suggested skills
 
-- `grilling` before each slice: all six shipped slices were decided by asking the open
-  questions directly (worked well). For slice 7, the questions are what movers/rumours/
-  specialities *do* mechanically (pure flavour vs gameplay hints), where the ticker lives
-  (header? market top?), and whether rumours cost money.
+- `grilling` before each slice: all seven shipped slices were decided by asking the open
+  questions directly (worked well). For slice 8, the questions are the game's real name,
+  and whether goods/ranks/repo get renamed to match it.
 - `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up;
   neither skill is vendored here yet, issues were written by hand so far).
 - `tdd` while building. The agreed seams: `Game.apply`/`RunState` for rules,
