@@ -2,7 +2,7 @@
 
 Context for the next agent or session picking up this repo. Read `AGENTS.md` first: it holds the
 rules. This file holds what is not written down anywhere else: why things are the way they are,
-the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `05691c3`.
+the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `470c2bd`.
 
 ## The goal
 
@@ -52,15 +52,38 @@ the commit history (`git log`); the main pieces:
   `CollectorSheet` when `run.collectorDue`, else `BrokeSheet` when `run.isBroke`),
   `HomeScreen` (header shows "Day N · ₹X a day to live here"; sahukar chip shows the
   collector's day), `RailMap`, `MarketScreen`, `Sheet`, `FacilitiesSheets` (Sahukar/Bank/
-  Luggage/Godown), `EventSheet` (events + the collector and broke prompt sheets),
+  Luggage/Godown), `AmountSheet` (the exact-amount keypad; `KeypadSpec` = Market/Money/
+  Godown), `EventSheet` (events + the collector and broke prompt sheets),
   `NewRunScreen` (no picker — every run is endless), `EndScreen` (per-ending line),
   `RunStore` (SharedPreferences, hand-rolled format at **v5**; v1–v4 all load — v4 debts get
   a fresh ten-day clock; `MAX_BEST_RUNS` = 5; `BestRun` has no run length any more).
 - Tests: 84 engine tests (including `SurvivalTest` and the 20,000-move simulation, which now
-  also plays `PayCollector`) and 2,100+ app tests (120 skipped, as designed).
+  also plays `PayCollector`) and 2,290+ app tests (120 skipped, as designed).
   `./gradlew test` takes under a minute on this Mac. Engine tests that want a move without
   the dice use `Game.applyQuietly` (internal); UI tests drain event sheets with
   `settleEvents()`.
+
+### Decisions made for slice 6 (27 Nov 2026)
+
+The exact-amount keypad, on every money and goods surface:
+
+- **Entry is both** (user): a small "exact" chip on every amount row AND long-press on the
+  existing chips and −/+ buttons (`combinedClickable` on `RoundButton`/`AmountChip`).
+- **Everywhere** (user): market rows, godown store/take/sell-stored, sahukar borrow/repay,
+  bank deposit/withdraw. `KeypadSpec` (Market/Money/Godown) describes what is being counted;
+  `AmountSheet` renders digits + a live count ("15 quintal" / "₹7,500") and one or two
+  confirms that enable only when `Game.check` would take the move. The market keypad offers
+  **both Buy and Sell** — one entry, either direction. Confirming clears the digits and
+  keeps the sheet open for another entry.
+- **No Max button** (user: skip it) — the All chips on facility rows already cover it.
+- **The keypad is not an `Overlay`**: `Phase.Playing.keypad` is a separate field so it
+  floats over whatever opened it (the market, a facility sheet) instead of replacing it.
+  It serializes into the phase saver; the typed digits reset on any restore — fine.
+  Back closes the keypad before the overlay under it.
+- **Market rows restructured for it**: price now sits right-aligned *above* the
+  − / exact / + cluster instead of beside it — three controls beside a price overflowed
+  280–320 dp screens at text ×1.5+. This is the first change to the approved row shape;
+  it was forced by the new control, not a restyle.
 
 ### Decisions made for the survival pivot (27 Nov 2026)
 
@@ -156,8 +179,8 @@ X days and if u dont pay them back they will kill u."
   luggage slots with every unit taking one slot, the city price table and each good's
   volatility, the living-cost table (₹60–₹120/city), the ten-day collector clock, the ₹5,000
   survival loan, 500-unit godowns at ₹50/day.
-- **From the mockups, not built:** the exact-amount keypad, the "movers" ticker, travel rumours,
-  each city's speciality line.
+- **From the mockups, not built:** the "movers" ticker, travel rumours, each city's
+  speciality line.
 - **Saved-state format is v5.** `RunStore` reads v1–v4 (v4 debts get a fresh ten-day clock,
   earlier versions pick up the newer fields empty). A format change still needs a bump or
   saved runs silently reset.
@@ -186,7 +209,8 @@ then a check on the emulator, then commit and push to `main`.
    on the rails, safe from the road's hazards.
 5. ~~Survival loop.~~ **Done** in `05691c3` (issue #5): endless runs, per-city living costs on
    every move, one loan at a time, the collector's ten-day pay-or-die, broke-or-borrow endings.
-6. **Exact amounts:** a keypad on long press, and a max button.
+6. ~~Exact amounts.~~ **Done** in `470c2bd` (issue #6): an "exact" chip + long-press on
+   every amount row opens one shared keypad; confirms validate live; no Max button.
 7. **The rest of the mockup:** the movers ticker, rumours and city specialities.
 8. **Naming pass with the user:** the game title, goods, ranks and the repo name.
 9. **Balance pass:** use the simulation to tune prices and risk, and verify the estimated
@@ -233,9 +257,10 @@ the earlier notes describe.
 
 ## Suggested skills
 
-- `grilling` before each slice: all five shipped slices were decided by asking the open
-  questions directly (worked well). For slice 6, the questions are keypad placement,
-  what "max" means per row (cash-limited? luggage-limited?), and long-press vs a button.
+- `grilling` before each slice: all six shipped slices were decided by asking the open
+  questions directly (worked well). For slice 7, the questions are what movers/rumours/
+  specialities *do* mechanically (pure flavour vs gameplay hints), where the ticker lives
+  (header? market top?), and whether rumours cost money.
 - `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up;
   neither skill is vendored here yet, issues were written by hand so far).
 - `tdd` while building. The agreed seams: `Game.apply`/`RunState` for rules,
