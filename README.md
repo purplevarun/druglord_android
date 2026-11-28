@@ -1,12 +1,13 @@
-# druglord_android
+# Saudagar
 
 An original, offline, ad-free trading game for Android: a travelling trader rides the rails
-between Indian cities in the year 2000, buying where goods are cheap and selling where they
-are scarce, before the days run out.
+between six Indian cities in the year 2000, buying where goods are cheap and selling where
+they are dear.
 
-Status: the trading loop is playable. Buy and sell one unit at a time in each city's market,
-and take the train between six cities; each trip uses up days. Loans, events, saving between
-sessions and the end-of-run screen are not built yet.
+Status: a whole run is playable, endlessly. Food and lodging bleed every move, the sahukar's
+collector is the deadline, and broke means broke — unless one last loan can turn it around.
+Trains, events, rumours, godowns, the bank, the luggage shop, the exact-amount keypad,
+retire-or-die endings, best runs, and saving between sessions are all in.
 
 - No ads, no analytics, no permissions at all.
 - Kotlin and Jetpack Compose, with no image assets.

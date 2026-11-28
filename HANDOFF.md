@@ -25,8 +25,8 @@ and the theme is not about drugs.
 | Constants | Every number, colour, size and string in one place (user request). See `AGENTS.md`. |
 | Distribution | Sideload only. Signed with a local release key, made the way the user's `coins` repo does it. No store. |
 | Size | Small. The release APK is 0.91 MB. |
-| Names | All names are placeholders, including the app title "Train Trader". The user said "we'll discuss nomenclature later". |
-| Repo | `purplevarun/druglord_android`, named "for now". Public, because GitHub Actions would not run on the private repo (account billing block). |
+| Names | Decided 28 Nov 2026 (user delegated): title **Saudagar** — "trader", a rank in the ladder and the game's whole arc. Goods and ranks keep their era-real names. `applicationId` stays `com.purplevarun.trader` (invisible; renaming would orphan installed saves). |
+| Repo | `purplevarun/saudagar_android` (renamed from `druglord_android`; GitHub redirects the old URL). Public, because GitHub Actions would not run on the private repo (account billing block). |
 | Branches | Work only on `main`. All other branches were deleted at the user's request. |
 | Process | Use Matt Pocock's skills (vendored in `.agents/skills/`) and Lauren Tan's pstack (not yet added; see below). |
 

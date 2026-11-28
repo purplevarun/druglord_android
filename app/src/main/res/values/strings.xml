@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- All on-screen text. Names are placeholders until the naming pass. -->
 <resources>
-    <string name="app_name">Train Trader</string>
+    <string name="app_name">Saudagar</string>
 
     <!-- Home -->
     <string name="net_worth_label">Net worth · %1$s</string>

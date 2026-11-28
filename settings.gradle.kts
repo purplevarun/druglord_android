@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "druglord_android"
+rootProject.name = "saudagar_android"
 include(":engine", ":app")

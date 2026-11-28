@@ -6,8 +6,9 @@ For where the work stands, why it is the way it is, and what comes next, read `H
 ## What this is
 
 An original, offline, ad-free Android trading game: a trader rides trains between six Indian
-cities in the year 2000, buying where goods are cheap and selling where they are dear before the
-days run out. Kotlin and Jetpack Compose. The release APK is sideloaded, not published to a store.
+cities in the year 2000, buying where goods are cheap and selling where they are dear. Runs have
+no last day — living costs bleed every move, debt carries a collector's deadline, and going broke
+ends it. Kotlin and Jetpack Compose. The release APK is sideloaded, not published to a store.
 
 ## Layout
 
@@ -46,7 +47,7 @@ in place; update them with `scripts/sync_agent_skills.py`.
 
 ### Issue tracker
 
-Issues and specs live in GitHub Issues on `purplevarun/druglord_android`, worked with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues and specs live in GitHub Issues on `purplevarun/saudagar_android`, worked with the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
