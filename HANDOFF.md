@@ -2,7 +2,7 @@
 
 Context for the next agent or session picking up this repo. Read `AGENTS.md` first: it holds the
 rules. This file holds what is not written down anywhere else: why things are the way they are,
-the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `3d27009`.
+the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `05691c3`.
 
 ## The goal
 
@@ -32,29 +32,79 @@ and the theme is not about drugs.
 
 ## Where things stand
 
-A whole run is playable: a market per city with − / + to sell or buy one, train trips that use
-up days, the sahukar, the bank and the luggage shop in every city, a way to end the run, an end
-screen with a rank, and a best-runs list. The run and the list survive the app being closed.
-Details are in the commit history (`git log`); the main pieces:
+A whole run is playable **endlessly**: a market per city with − / + to sell or buy one, train
+trips that use up days, the sahukar, the bank, the luggage shop and the godown in every city,
+random events on every move, a retire-anytime end, an end screen with a rank and an ending, and
+a best-runs list. The clock is the wallet now: living costs bleed every move, and the sahukar's
+collector is the deadline. The run and the list survive the app being closed. Details are in
+the commit history (`git log`); the main pieces:
 
-- `engine/`: `RunState` (the whole run: cash, debt, bank, transport, holdings, `rngRolls`,
-  `priceShifts`; plus `isEndless`, `isOnLastDay`, `rank`), `Game.check` (pure validation) +
-  `Game.apply` (check, move, then roll the dice; `Outcome.Done` carries `events`), `Market`
-  (prices derived from the run's seed, never stored), `RailNetwork` (routes), `GameCalendar`
-  (day to date), `GameConstants.RANK_THRESHOLDS`, `TRANSPORTS`, `SAHUKAR_DAILY_INTEREST` (8%),
-  `BANK_DAILY_INTEREST` (1%), `TRANSACTION_STEPS_RUPEES`, the event constants, and
-  `Game.applyEvent` (what each `GameEvent` does to the state; internal test seam).
-- `app/`: `GameScreen` (holds `Phase`: `NewRun` / `Playing` / `Ended`; `Playing` also queues
-  `pendingEvents`; overlays include `Sahukar`/`Bank`/`Luggage`), `HomeScreen` (places chips in
-  the bottom drawer), `RailMap`, `MarketScreen`, `Sheet` (shared bottom-sheet chrome used by
-  all six sheets), `FacilitiesSheets` (Sahukar/Bank/Luggage), `EventSheet` (one event told,
-  one tap to dismiss, "N more to tell"), `NewRunScreen`, `EndScreen`,
-  `RunStore` (SharedPreferences, hand-rolled format at **v3**; v1 loads with no bank and a
-  jhola, v2 loads untouched by dice and news; `MAX_BEST_RUNS` = 5).
-- Tests: 64 engine tests (including a 20,000-move simulation that also plays the facilities)
-  and 1,900+ app tests (120 more skipped, as designed). `./gradlew test` takes under a minute
-  on this Mac. Engine tests that want a move without the dice use `Game.applyQuietly`
-  (internal); UI tests drain event sheets with `settleEvents()`.
+- `engine/`: `RunState` (the whole run: cash, debt, `debtDueDay`, bank, transport, godowns,
+  holdings, `rngRolls`, `priceShifts`; plus `livingCostPerDay`, `collectorDue`, `isBroke`,
+  `rank`), `Game.check` (pure validation) + `Game.apply` (check, move, then roll the dice;
+  `Outcome.Done` carries `events`), `chargingLiving` inside `applyMove` (every non-travel move
+  = 1 day at the city's rate; shortfalls land on debt), `Market`, `RailNetwork`, `GameCalendar`,
+  `GameConstants.RANK_THRESHOLDS`, `LIVING_COST_RUPEES` (per city), `COLLECTOR_AFTER_DAYS` (10),
+  `SURVIVAL_LOAN_RUPEES` (₹5,000), `TRANSPORTS`, `GODOWN_*`, the event constants, and
+  `Game.applyEvent` (internal test seam). `Action.PayCollector` pays the whole debt cash-first.
+- `app/`: `GameScreen` (`Phase`: `NewRun` / `Playing` / `Ended(run, ending)`; `Playing` queues
+  `pendingEvents`; `Ending` = RETIRED/BROKE/COLLECTED; forced sheets render over events:
+  `CollectorSheet` when `run.collectorDue`, else `BrokeSheet` when `run.isBroke`),
+  `HomeScreen` (header shows "Day N · ₹X a day to live here"; sahukar chip shows the
+  collector's day), `RailMap`, `MarketScreen`, `Sheet`, `FacilitiesSheets` (Sahukar/Bank/
+  Luggage/Godown), `EventSheet` (events + the collector and broke prompt sheets),
+  `NewRunScreen` (no picker — every run is endless), `EndScreen` (per-ending line),
+  `RunStore` (SharedPreferences, hand-rolled format at **v5**; v1–v4 all load — v4 debts get
+  a fresh ten-day clock; `MAX_BEST_RUNS` = 5; `BestRun` has no run length any more).
+- Tests: 84 engine tests (including `SurvivalTest` and the 20,000-move simulation, which now
+  also plays `PayCollector`) and 2,100+ app tests (120 skipped, as designed).
+  `./gradlew test` takes under a minute on this Mac. Engine tests that want a move without
+  the dice use `Game.applyQuietly` (internal); UI tests drain event sheets with
+  `settleEvents()`.
+
+### Decisions made for the survival pivot (27 Nov 2026)
+
+The user steered hard toward the Drug Lord 2 loop: "it's a casual game… completely removing the
+day limit… food and living expenses each day… when u hit 0 u can get a prompt to borrow money,
+if already in debt, u cant borrow anymore — this is impt… the sharks will come to collect after
+X days and if u dont pay them back they will kill u."
+
+- **No day limit at all** — `runLengthDays`, `daysLeft`, `isEndless`, `isOnLastDay`,
+  `NOT_ENOUGH_DAYS`, the length picker, the last-day finish button and the progress bar are all
+  gone. The header reads "Day N"; ending is always a retirement or a death.
+- **Living costs**: every move bills one day at the city's rate (`LIVING_COST_RUPEES`: Mumbai
+  ₹120 … Srinagar ₹60); rail days bill at the destination's rate. Agent's call (user deferred)
+  — per-move keeps the pressure constant and the city choice meaningful. What cash can't cover
+  lands on the sahukar debt, exactly like unpaid godown rent.
+- **One loan at a time** (user): `Borrow` rejects with `ALREADY_OWES` while debt stands. The
+  ₹5,000 starting debt therefore locks borrowing until repaid — the user's rule working as
+  stated, and it makes the collector's first deadline (day 10) the game's opening pressure.
+- **Broke = nothing left at all** (user): `isBroke` = cash ≤ 0, bank ≤ 0, nothing carried,
+  nothing stored → `BrokeSheet`: borrow ₹5,000 (`SURVIVAL_LOAN_RUPEES`) if debt-free, else only
+  "It's over". The sheet cannot be dismissed.
+- **The collector** (user: 10 days, pay-or-die prompt): `debtDueDay` is set when debt goes
+  0 → positive and cleared when it hits 0. `collectorDue` when the day reaches it →
+  `CollectorSheet`: `Action.PayCollector` (cash first, then bank) or death. Paying itself
+  costs a day's living — pay the man and go broke, and the broke prompt follows.
+- **Endings**: `Phase.Ended` carries `Ending.RETIRED` / `BROKE` / `COLLECTED`; the end screen
+  says which. Dead runs still land on the best-runs list.
+- **Sheet render order** in `GameScreenContent`: overlay sheets → `EventSheet` (queued) →
+  `CollectorSheet` → `BrokeSheet` — each higher one can starve the ones below, which is
+  intended: the collector's knock matters more than the day's news.
+- **Saved format v5**: `run.length` is gone, `run.dueDay` added. A v4 run loads with a fresh
+  ten-day clock on any debt it owes. `BestRun` dropped its length field (days survived is kept).
+- **Interest and rent still tick only on days that pass** — rail days and bandh days — not per
+  move; the simulation would otherwise compound 8% per tap.
+
+### Decisions made for slice 4 (27 Nov 2026)
+
+- Godown in every city: fixed capacity 500 units (`GODOWN_CAPACITY_UNITS`), ₹50/day per city
+  holding goods (`GODOWN_DAILY_RENT_RUPEES`), billed inside `apply(Travel)` — unpaid rent lands
+  on the debt. Agent-chosen capacity; user picked rent-only pricing, in-person selling.
+- Stashed goods count in net worth at their city's price (`priceOfIn`) and are safe from
+  pickpockets and checkposts — the strategic reason to stash.
+- Store/Retrieve/SellStored actions; `NOT_ENOUGH_STORED`/`GODOWN_FULL` rejections; a fourth
+  places chip opens `GodownSheet` (per-good stow/take rows, elsewhere-stashes listed read-only).
 
 ### Decisions made for slice 3 (27 Nov 2026)
 
@@ -103,12 +153,14 @@ Details are in the commit history (`git log`); the main pieces:
   basmati, chai, silk sarees, kesar. Gold, cotton and masala (black pepper) are sourced. Each is
   flagged `SOURCED` or `ESTIMATE` in `GameConstants.GOODS`.
 - **Tuning I chose, never confirmed by the user:** ₹10,000 starting cash, ₹5,000 debt, 100
-  luggage slots with every unit taking one slot, the city price table and each good's volatility.
+  luggage slots with every unit taking one slot, the city price table and each good's
+  volatility, the living-cost table (₹60–₹120/city), the ten-day collector clock, the ₹5,000
+  survival loan, 500-unit godowns at ₹50/day.
 - **From the mockups, not built:** the exact-amount keypad, the "movers" ticker, travel rumours,
   each city's speciality line.
-- **Saved-state format is v3.** `RunStore` reads v1 and v2 too (v1 loads with no savings and
-  a jhola; v2 loads with no dice history and no price shifts). A format change still needs a
-  bump or saved runs silently reset.
+- **Saved-state format is v5.** `RunStore` reads v1–v4 (v4 debts get a fresh ten-day clock,
+  earlier versions pick up the newer fields empty). A format change still needs a bump or
+  saved runs silently reset.
 - **Android 7 (API 24-25):** bold Gelasio renders as regular, because those versions cannot pick
   a weight from a variable font. Never tested on a real old phone.
 - **Agent skills:** never checked loading in Copilot, Devin or Windsurf, only that the files are
@@ -130,13 +182,17 @@ then a check on the emulator, then commit and push to `main`.
    savings, jhola→truck upgrades, places chips in the drawer opening sheets.
 3. ~~Random events.~~ **Done** in `3d27009` (issue #3): pickpockets, checkposts, bandhs and
    mandi news on every move; trades move the local price, which fades each travel day.
-4. **Godown:** a store in each city.
-5. **Exact amounts:** a keypad on long press, and a max button.
-6. **The rest of the mockup:** the movers ticker, rumours and city specialities.
-7. **Naming pass with the user:** the game title, goods, ranks and the repo name.
-8. **Balance pass:** use the simulation to tune prices and risk, and verify the estimated prices.
-9. **Releases:** version numbering and a script that builds the signed APK and attaches it to a
-   GitHub release.
+4. ~~Godown.~~ **Done** in `ae79477` (issue #4): a 500-unit store per city at ₹50/day, billed
+   on the rails, safe from the road's hazards.
+5. ~~Survival loop.~~ **Done** in `05691c3` (issue #5): endless runs, per-city living costs on
+   every move, one loan at a time, the collector's ten-day pay-or-die, broke-or-borrow endings.
+6. **Exact amounts:** a keypad on long press, and a max button.
+7. **The rest of the mockup:** the movers ticker, rumours and city specialities.
+8. **Naming pass with the user:** the game title, goods, ranks and the repo name.
+9. **Balance pass:** use the simulation to tune prices and risk, and verify the estimated
+   prices. Now bigger: living costs vs profit margins, the 10-day clock, the survival loan.
+10. **Releases:** version numbering and a script that builds the signed APK and attaches it to
+    a GitHub release.
 
 ## This machine
 
@@ -177,10 +233,9 @@ the earlier notes describe.
 
 ## Suggested skills
 
-- `grilling` before each slice: slices 1–3 were decided by asking the open questions
-  directly (worked well). Slice 4 open questions: how much a godown costs per city, whether
-  it charges rent per day, how much it holds, and whether stashed goods sell remotely or
-  only in person.
+- `grilling` before each slice: all five shipped slices were decided by asking the open
+  questions directly (worked well). For slice 6, the questions are keypad placement,
+  what "max" means per row (cash-limited? luggage-limited?), and long-press vs a button.
 - `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up;
   neither skill is vendored here yet, issues were written by hand so far).
 - `tdd` while building. The agreed seams: `Game.apply`/`RunState` for rules,
