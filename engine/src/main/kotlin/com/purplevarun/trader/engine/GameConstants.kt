@@ -30,6 +30,9 @@ object GameConstants {
     /** What the sahukar lends a trader with nothing left: enough to climb back, one shot. */
     const val SURVIVAL_LOAN_RUPEES = 5_000L
 
+    /** The most the sahukar will stake a trader at once, whatever he is asked. */
+    const val MAX_LOAN_RUPEES = 50_000L
+
     /**
      * Final net worth to rank: the first threshold the score reaches or passes.
      * Game tuning, not history; the balance pass will set real cutoffs.
@@ -66,9 +69,9 @@ object GameConstants {
      */
     val TRANSPORTS: List<Transport> = listOf(
         Transport(TransportId.JHOLA, capacity = 100, priceRupees = 0),
-        Transport(TransportId.TRUNK, capacity = 250, priceRupees = 4_000),
-        Transport(TransportId.TEMPO, capacity = 600, priceRupees = 15_000),
-        Transport(TransportId.TRUCK, capacity = 1_500, priceRupees = 50_000),
+        Transport(TransportId.TRUNK, capacity = 250, priceRupees = 6_000),
+        Transport(TransportId.TEMPO, capacity = 600, priceRupees = 25_000),
+        Transport(TransportId.TRUCK, capacity = 1_500, priceRupees = 90_000),
     )
 
     fun transport(id: TransportId): Transport = TRANSPORTS.first { it.id == id }
@@ -124,15 +127,16 @@ object GameConstants {
     /**
      * Base prices at year-2000 rupee levels, per trade unit.
      * SOURCED: cotton (2000-01 support price, RBI and Economic Survey), masala (black pepper,
-     * about Rs 215/kg in 1999-2000), gold (Rs 4,300 to 4,800 per 10 g in 2000, RBI).
-     * ESTIMATE: no year-2000 source found yet; verify before treating as final.
+     * about Rs 215/kg in 1999-2000), gold (Rs 4,300 to 4,800 per 10 g in 2000, RBI), chai
+     * (Calcutta auction averages ran about Rs 60 to 103/kg through 2000, Tea Board figures).
+     * ESTIMATE: no year-2000 source found; plausible but unverified.
      * Volatility is game tuning, not history: onions were notoriously jumpy, gold barely moved.
      */
     val GOODS: List<Good> = listOf(
         Good(GoodId.ONIONS, TradeUnit.QUINTAL, 400, PriceBasis.ESTIMATE, volatility = 0.45),
         Good(GoodId.COTTON, TradeUnit.QUINTAL, 1_825, PriceBasis.SOURCED, volatility = 0.15),
         Good(GoodId.BASMATI, TradeUnit.QUINTAL, 3_000, PriceBasis.ESTIMATE, volatility = 0.15),
-        Good(GoodId.CHAI, TradeUnit.QUINTAL, 6_500, PriceBasis.ESTIMATE, volatility = 0.2),
+        Good(GoodId.CHAI, TradeUnit.QUINTAL, 6_500, PriceBasis.SOURCED, volatility = 0.2),
         Good(GoodId.MASALA, TradeUnit.QUINTAL, 21_500, PriceBasis.SOURCED, volatility = 0.25),
         Good(GoodId.SILK_SAREES, TradeUnit.BUNDLE_OF_TEN, 25_000, PriceBasis.ESTIMATE, volatility = 0.2),
         Good(GoodId.KESAR, TradeUnit.KILOGRAM, 40_000, PriceBasis.ESTIMATE, volatility = 0.3),
@@ -145,16 +149,16 @@ object GameConstants {
      * where things come from (saffron from Kashmir, tea through Calcutta, silk from Karnataka).
      */
     val CITY_PRICE_FACTORS: Map<CityId, Map<GoodId, Double>> = mapOf(
-        CityId.MUMBAI to mapOf(GoodId.ONIONS to 0.7, GoodId.GOLD to 0.95, GoodId.KESAR to 1.3, GoodId.CHAI to 1.15),
-        CityId.DELHI to mapOf(GoodId.BASMATI to 0.7, GoodId.SILK_SAREES to 1.3, GoodId.MASALA to 1.2, GoodId.GOLD to 1.05),
-        CityId.CALCUTTA to mapOf(GoodId.CHAI to 0.6, GoodId.ONIONS to 1.3, GoodId.COTTON to 1.2, GoodId.KESAR to 1.15),
+        CityId.MUMBAI to mapOf(GoodId.ONIONS to 0.75, GoodId.GOLD to 0.95, GoodId.KESAR to 1.2, GoodId.CHAI to 1.1),
+        CityId.DELHI to mapOf(GoodId.BASMATI to 0.75, GoodId.SILK_SAREES to 1.2, GoodId.MASALA to 1.15, GoodId.GOLD to 1.05),
+        CityId.CALCUTTA to mapOf(GoodId.CHAI to 0.7, GoodId.ONIONS to 1.2, GoodId.COTTON to 1.15, GoodId.KESAR to 1.1),
         CityId.SRINAGAR to mapOf(
-            GoodId.KESAR to 0.6, GoodId.ONIONS to 1.4, GoodId.MASALA to 1.35, GoodId.COTTON to 1.25, GoodId.CHAI to 1.2,
+            GoodId.KESAR to 0.7, GoodId.ONIONS to 1.25, GoodId.MASALA to 1.2, GoodId.COTTON to 1.15, GoodId.CHAI to 1.15,
         ),
         CityId.BANGALORE to mapOf(
-            GoodId.SILK_SAREES to 0.65, GoodId.MASALA to 0.75, GoodId.BASMATI to 1.25, GoodId.KESAR to 1.2,
+            GoodId.SILK_SAREES to 0.75, GoodId.MASALA to 0.8, GoodId.BASMATI to 1.15, GoodId.KESAR to 1.15,
         ),
-        CityId.HYDERABAD to mapOf(GoodId.COTTON to 0.7, GoodId.BASMATI to 1.2, GoodId.SILK_SAREES to 1.15),
+        CityId.HYDERABAD to mapOf(GoodId.COTTON to 0.75, GoodId.BASMATI to 1.15, GoodId.SILK_SAREES to 1.1),
     )
 
     /** The good a city prices lowest — its speciality, the thing that comes cheap here. */

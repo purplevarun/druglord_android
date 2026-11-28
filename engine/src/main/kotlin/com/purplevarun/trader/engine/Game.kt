@@ -30,6 +30,7 @@ enum class Rejection {
     ALREADY_THERE,
     NOT_ENOUGH_SAVED,
     ALREADY_OWES,
+    ASKS_TOO_MUCH,
     NOTHING_OWED,
     REPAYS_MORE_THAN_OWED,
     NOT_AN_UPGRADE,
@@ -68,6 +69,7 @@ object Game {
             if (action.to == state.city) Rejection.ALREADY_THERE else null
         is Action.Borrow -> when {
             action.amountRupees <= 0 -> Rejection.NOT_A_POSITIVE_QUANTITY
+            action.amountRupees > GameConstants.MAX_LOAN_RUPEES -> Rejection.ASKS_TOO_MUCH
             // The sahukar lends once: while you owe anything there is no more.
             state.debtRupees > 0 -> Rejection.ALREADY_OWES
             else -> null
@@ -112,7 +114,9 @@ object Game {
         }
         Action.PayCollector -> when {
             state.debtRupees == 0L -> Rejection.NOTHING_OWED
-            state.cashRupees + state.bankRupees < state.debtRupees -> Rejection.NOT_ENOUGH_CASH
+            // The visit settles the debt and the day's keep in one go.
+            state.cashRupees + state.bankRupees < state.debtRupees + state.livingCostPerDay ->
+                Rejection.NOT_ENOUGH_CASH
             else -> null
         }
     }
@@ -164,14 +168,20 @@ object Game {
         return state.copy(
             cashRupees = state.cashRupees - paid,
             debtRupees = state.debtRupees + (cost - paid),
+            debtDueDay = debtDueDayAfter(state, cost - paid),
         )
     }
 
     private fun applyMove(state: RunState, action: Action): RunState {
         val moved = performMove(state, action)
-        // A trip lives at the destination's rate for each rail day; any other move
-        // takes one day of living where you are.
-        return if (action is Action.Travel) moved else chargingLiving(moved, 1)
+        // A trip lives at the destination's rate for each rail day; any other move takes
+        // one day of living where you are — except the collector's visit, which settled
+        // the day's keep inside the payment itself.
+        return if (action is Action.Travel || action is Action.PayCollector) {
+            moved
+        } else {
+            chargingLiving(moved, 1)
+        }
     }
 
     private fun performMove(state: RunState, action: Action): RunState = when (action) {
@@ -274,12 +284,13 @@ object Game {
             )
         }
         Action.PayCollector -> {
-            // Cash first, then the bank — the collector takes the whole debt either way.
-            val fromCash = minOf(state.cashRupees, state.debtRupees)
-            val fromBank = state.debtRupees - fromCash
+            // Cash first, then the bank — the collector takes the whole debt and the
+            // day's keep in one visit, so paying with an empty pocket cannot re-indebt.
+            val total = state.debtRupees + state.livingCostPerDay
+            val fromCash = minOf(state.cashRupees, total)
             state.copy(
                 cashRupees = state.cashRupees - fromCash,
-                bankRupees = state.bankRupees - fromBank,
+                bankRupees = state.bankRupees - (total - fromCash),
                 debtRupees = 0,
                 debtDueDay = 0,
             )
@@ -297,8 +308,20 @@ object Game {
         return state.copy(
             cashRupees = state.cashRupees - paid,
             debtRupees = state.debtRupees + (rent - paid),
+            debtDueDay = debtDueDayAfter(state, rent - paid),
         )
     }
+
+    /**
+     * Debt taken without borrowing — unpaid keep, unpaid rent — starts the collector's
+     * clock like a loan does. A clock already ticking keeps the sooner day.
+     */
+    private fun debtDueDayAfter(state: RunState, shortfall: Long): Int =
+        if (shortfall > 0 && state.debtDueDay == 0) {
+            state.day + GameConstants.COLLECTOR_AFTER_DAYS
+        } else {
+            state.debtDueDay
+        }
 
     /** One unit traded nudges the local price [shiftBp] basis points; same-shift merges. */
     private fun saturating(state: RunState, city: CityId, good: GoodId, shiftBp: Int): RunState {

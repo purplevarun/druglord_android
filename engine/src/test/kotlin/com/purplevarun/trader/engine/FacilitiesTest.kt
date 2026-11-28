@@ -92,7 +92,10 @@ class FacilitiesTest {
     @Test
     fun `a better transport costs its price and raises the luggage`() {
         val after = done(Game.applyQuietly(start, Action.BuyTransport(TransportId.TRUNK)))
-        assertEquals(6_000L - after.livingCostPerDay, after.cashRupees)
+        assertEquals(
+            10_000L - GameConstants.transport(TransportId.TRUNK).priceRupees - after.livingCostPerDay,
+            after.cashRupees,
+        )
         assertEquals(TransportId.TRUNK, after.transport)
         assertEquals(250, after.luggageCapacity)
     }

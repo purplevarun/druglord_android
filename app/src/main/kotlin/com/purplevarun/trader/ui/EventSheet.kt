@@ -122,13 +122,19 @@ fun CollectorSheet(state: RunState, onAction: (Action) -> Unit, onDeath: () -> U
             TitleLine(title = stringResource(R.string.collector_title), status = "")
             Spacer(Modifier.height(UiDimens.SheetLineGap))
             BasicText(
-                stringResource(R.string.collector_body, formatRupees(state.debtRupees)),
+                stringResource(
+                    R.string.collector_body,
+                    formatRupees(state.debtRupees + state.livingCostPerDay),
+                ),
                 style = UiType.Body,
             )
         },
         actions = {
             PrimaryButton(
-                text = stringResource(R.string.collector_pay, formatRupees(state.debtRupees)),
+                text = stringResource(
+                    R.string.collector_pay,
+                    formatRupees(state.debtRupees + state.livingCostPerDay),
+                ),
                 enabled = canPay,
                 onClick = { onAction(Action.PayCollector) },
                 modifier = Modifier.testTag(TestTags.PAY_COLLECTOR),

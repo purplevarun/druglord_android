@@ -150,7 +150,7 @@
 
     <!-- The collector and the end of options -->
     <string name="collector_title">The collector</string>
-    <string name="collector_body">The ten days ran out — he wants the whole %1$s now, cash first then your savings. Pay up or it\'s over.</string>
+    <string name="collector_body">The ten days ran out — he wants the whole %1$s now, cash first then your savings, and the day\'s keep rides with it. Pay up or it\'s over.</string>
     <string name="collector_pay">Pay %1$s</string>
     <string name="meet_fate">It\'s over</string>
     <string name="broke_title">Broke</string>

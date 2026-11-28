@@ -409,7 +409,7 @@ class GameFlowTest {
         settleEvents()
 
         compose.onNodeWithText("Trunk · 0 of 250 filled").assertExists()
-        compose.onNodeWithText("Cash ₹5,880 · Debt ₹5,000").assertExists()
+        compose.onNodeWithText("Cash ₹3,880 · Debt ₹5,000").assertExists()
 
         compose.onNodeWithText("Close").performClick()
         openMarket()

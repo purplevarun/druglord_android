@@ -88,11 +88,26 @@ data class RunState(
     val rank: RankId
         get() = GameConstants.RANK_THRESHOLDS.first { netWorthRupees >= it.first }.second
 
-    /** The most of [good] that cash and luggage space allow right now. */
+    /**
+     * The most of [good] that cash and luggage space allow right now. The order itself moves
+     * the price: unit q costs what it costs at the shifted quote, so the answer solves
+     * q·(price + q·base·bp) ≤ cash — not a plain division, which would overshoot.
+     */
     fun maxBuyable(good: GoodId): Int {
-        val affordable = cashRupees / priceOf(good)
-        val space = (luggageCapacity - luggageUsed).toLong()
-        return minOf(affordable, space).coerceAtLeast(0).toInt()
+        val space = (luggageCapacity - luggageUsed).toLong().coerceAtLeast(0)
+        if (space == 0L || cashRupees <= 0) return 0
+        val price = priceOf(good)
+        val base = Market.price(seed, day, city, good)
+        // Cost of q units bought at once: q·price + q·(shifted price per extra unit),
+        // which is q·price + q²·base·SATURATION_BP/10000. Solve the quadratic for q.
+        val rise = base * GameConstants.SATURATION_BP_PER_UNIT / 10_000.0
+        val affordable = if (rise <= 0.0) {
+            cashRupees / price
+        } else {
+            ((-price + kotlin.math.sqrt(price.toDouble() * price + 4 * rise * cashRupees)) / (2 * rise))
+                .toLong()
+        }
+        return minOf(affordable, space).toInt()
     }
 
     companion object {

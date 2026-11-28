@@ -77,9 +77,9 @@ class SurvivalTest {
         )
         val after = done(Game.applyQuietly(state, Action.PayCollector))
         assertEquals(0, after.cashRupees)
-        assertEquals(2_000, after.bankRupees)
-        // Paying took a day too, and living it with an empty pocket lands back on the debt.
-        assertEquals(after.livingCostPerDay, after.debtRupees)
+        // The visit settles the debt and the day's keep in one go.
+        assertEquals(3_000 - (5_000 + after.livingCostPerDay - 4_000), after.bankRupees)
+        assertEquals(0, after.debtRupees)
         assertEquals(0, after.debtDueDay)
         assertFalse(after.collectorDue)
     }
@@ -126,5 +126,17 @@ class SurvivalTest {
         val after = done(Game.applyQuietly(threadbare, Action.Deposit(1)))
         assertEquals(0, after.cashRupees)
         assertEquals(threadbare.livingCostPerDay - 9, after.debtRupees)
+    }
+
+    @Test
+    fun `debt taken without borrowing still gets a deadline`() {
+        val threadbare = start.copy(cashRupees = 10, debtRupees = 0, debtDueDay = 0)
+        val after = done(Game.applyQuietly(threadbare, Action.Deposit(1)))
+        // Unpaid keep owes like a loan: the collector's clock starts from today.
+        assertEquals(threadbare.day + GameConstants.COLLECTOR_AFTER_DAYS, after.debtDueDay)
+        // And a clock already ticking keeps the sooner day.
+        val owing = threadbare.copy(debtRupees = 500, debtDueDay = threadbare.day + 3)
+        val again = done(Game.applyQuietly(owing, Action.Deposit(1)))
+        assertEquals(threadbare.day + 3, again.debtDueDay)
     }
 }
