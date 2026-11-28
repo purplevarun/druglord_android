@@ -204,7 +204,8 @@ X days and if u dont pay them back they will kill u."
   luggage slots with every unit taking one slot, the city price table and each good's
   volatility, the living-cost table (₹60–₹120/city), the ten-day collector clock, the ₹5,000
   survival loan, 500-unit godowns at ₹50/day.
-- **The mockup is fully built.** Naming and balance are all that remain before releases.
+- **The mockup is fully built.** The game is named **Saudagar**; balance is all that remains
+  before releases.
 - **Saved-state format is v6.** `RunStore` reads v1–v5 (v4 debts get a fresh ten-day clock,
   v5 loads with no rumours). A format change still needs a bump or saved runs silently
   reset.
@@ -237,7 +238,10 @@ then a check on the emulator, then commit and push to `main`.
    every amount row opens one shared keypad; confirms validate live; no Max button.
 7. ~~The rest of the mockup.~~ **Done** in `fc9f73e` (issue #7): movers ticker and
    speciality line in the market header; rumours that land (or dud) as real swings.
-8. **Naming pass with the user:** the game title, goods, ranks and the repo name.
+8. ~~Naming pass.~~ **Done** in `c977611` (issue #8): the game is **Saudagar**; repo renamed
+   `purplevarun/saudagar_android`; goods/ranks unchanged; `applicationId` unchanged. The local
+   dir is still `druglord_android` on disk — renaming the working directory was deliberately
+   skipped; do it between sessions if wanted.
 9. **Balance pass:** use the simulation to tune prices and risk, and verify the estimated
    prices. Now bigger: living costs vs profit margins, the 10-day clock, the survival loan.
 10. **Releases:** version numbering and a script that builds the signed APK and attaches it to
@@ -279,12 +283,14 @@ the earlier notes describe.
   count — no flakiness, no mocking.
 - **Release builds:** unit tests are switched off for the release build, because the UI tests
   need the debug-only test activity.
+- **Git remote is HTTPS, not SSH.** The Mac's SSH key belongs to `ritika-tw`, who has no access;
+  pushes authenticate as `purplevarun` through `gh`'s credential helper. Setting the remote to a
+  `git@github.com:` URL breaks pushes (hit once during the repo rename).
 
 ## Suggested skills
 
-- `grilling` before each slice: all seven shipped slices were decided by asking the open
-  questions directly (worked well). For slice 8, the questions are the game's real name,
-  and whether goods/ranks/repo get renamed to match it.
+- `grilling` before each slice: all eight shipped slices were decided by asking the open
+  questions directly, or by the agent when the user delegates (slice 8).
 - `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up;
   neither skill is vendored here yet, issues were written by hand so far).
 - `tdd` while building. The agreed seams: `Game.apply`/`RunState` for rules,
