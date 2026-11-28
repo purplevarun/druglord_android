@@ -15,6 +15,9 @@ sealed interface Action {
     data class Deposit(val amountRupees: Long) : Action
     data class Withdraw(val amountRupees: Long) : Action
     data class BuyTransport(val transport: TransportId) : Action
+    data class Store(val good: GoodId, val quantity: Int) : Action
+    data class Retrieve(val good: GoodId, val quantity: Int) : Action
+    data class SellStored(val good: GoodId, val quantity: Int) : Action
 }
 
 enum class Rejection {
@@ -27,6 +30,8 @@ enum class Rejection {
     NOT_ENOUGH_SAVED,
     REPAYS_MORE_THAN_OWED,
     NOT_AN_UPGRADE,
+    NOT_ENOUGH_STORED,
+    GODOWN_FULL,
 }
 
 sealed interface Outcome {
@@ -84,6 +89,23 @@ object Game {
             GameConstants.transport(action.transport).priceRupees > state.cashRupees -> Rejection.NOT_ENOUGH_CASH
             else -> null
         }
+        is Action.Store -> when {
+            action.quantity <= 0 -> Rejection.NOT_A_POSITIVE_QUANTITY
+            action.quantity > state.held(action.good) -> Rejection.NOT_ENOUGH_HELD
+            state.godownUsed(state.city) + action.quantity > GameConstants.GODOWN_CAPACITY_UNITS -> Rejection.GODOWN_FULL
+            else -> null
+        }
+        is Action.Retrieve -> when {
+            action.quantity <= 0 -> Rejection.NOT_A_POSITIVE_QUANTITY
+            action.quantity > state.stored(state.city, action.good) -> Rejection.NOT_ENOUGH_STORED
+            action.quantity > state.luggageCapacity - state.luggageUsed -> Rejection.NOT_ENOUGH_LUGGAGE_SPACE
+            else -> null
+        }
+        is Action.SellStored -> when {
+            action.quantity <= 0 -> Rejection.NOT_A_POSITIVE_QUANTITY
+            action.quantity > state.stored(state.city, action.good) -> Rejection.NOT_ENOUGH_STORED
+            else -> null
+        }
     }
 
     fun apply(state: RunState, action: Action): Outcome {
@@ -135,15 +157,18 @@ object Game {
         is Action.Travel -> {
             val days = RailNetwork.travelDays(state.city, action.to)
             // Every day on the rails the debt grows heavier, the savings a little richer,
-            // and old news and saturation fade a step further.
-            state.copy(
-                city = action.to,
-                day = state.day + days,
-                debtRupees = state.debtRupees.withInterest(GameConstants.SAHUKAR_DAILY_INTEREST, days),
-                bankRupees = state.bankRupees.withInterest(GameConstants.BANK_DAILY_INTEREST, days),
-                priceShifts = state.priceShifts
-                    .map { it.copy(basisPoints = (it.basisPoints * GameConstants.PRICE_SHIFT_DAILY_DECAY.pow(days)).toInt()) }
-                    .filter { kotlin.math.abs(it.basisPoints) >= GameConstants.PRICE_SHIFT_MIN_BP },
+            // the godowns bill their rent, and old news and saturation fade a step further.
+            chargingRent(
+                state.copy(
+                    city = action.to,
+                    day = state.day + days,
+                    debtRupees = state.debtRupees.withInterest(GameConstants.SAHUKAR_DAILY_INTEREST, days),
+                    bankRupees = state.bankRupees.withInterest(GameConstants.BANK_DAILY_INTEREST, days),
+                    priceShifts = state.priceShifts
+                        .map { it.copy(basisPoints = (it.basisPoints * GameConstants.PRICE_SHIFT_DAILY_DECAY.pow(days)).toInt()) }
+                        .filter { kotlin.math.abs(it.basisPoints) >= GameConstants.PRICE_SHIFT_MIN_BP },
+                ),
+                days,
             )
         }
         is Action.Borrow -> state.copy(
@@ -165,6 +190,55 @@ object Game {
         is Action.BuyTransport -> state.copy(
             cashRupees = state.cashRupees - GameConstants.transport(action.transport).priceRupees,
             transport = action.transport,
+        )
+        is Action.Store -> {
+            val left = state.held(action.good) - action.quantity
+            val godown = state.godowns[state.city].orEmpty() +
+                (action.good to state.stored(state.city, action.good) + action.quantity)
+            state.copy(
+                holdings = if (left > 0) state.holdings + (action.good to left) else state.holdings - action.good,
+                godowns = state.godowns + (state.city to godown),
+            )
+        }
+        is Action.Retrieve -> {
+            val left = state.stored(state.city, action.good) - action.quantity
+            val godown = if (left > 0) {
+                state.godowns.getValue(state.city) + (action.good to left)
+            } else {
+                state.godowns.getValue(state.city) - action.good
+            }
+            state.copy(
+                holdings = state.holdings + (action.good to state.held(action.good) + action.quantity),
+                godowns = if (godown.isEmpty()) state.godowns - state.city else state.godowns + (state.city to godown),
+            )
+        }
+        is Action.SellStored -> {
+            // Selling from the store hits the same mandi: it moves the price, then pays it.
+            val moved = saturating(state, state.city, action.good, -action.quantity * GameConstants.SATURATION_BP_PER_UNIT)
+            val left = moved.stored(state.city, action.good) - action.quantity
+            val godown = if (left > 0) {
+                moved.godowns.getValue(state.city) + (action.good to left)
+            } else {
+                moved.godowns.getValue(state.city) - action.good
+            }
+            moved.copy(
+                cashRupees = moved.cashRupees + moved.priceOf(action.good) * action.quantity,
+                godowns = if (godown.isEmpty()) moved.godowns - state.city else moved.godowns + (state.city to godown),
+            )
+        }
+    }
+
+    /**
+     * The godowns bill per day that passes. Cash pays what it can; the godown man knows a
+     * collector, so what cash cannot cover lands on the sahukar debt — at its interest.
+     */
+    private fun chargingRent(state: RunState, days: Int): RunState {
+        val rent = state.godownRentPerDay * days
+        if (rent <= 0) return state
+        val paid = minOf(rent, state.cashRupees)
+        return state.copy(
+            cashRupees = state.cashRupees - paid,
+            debtRupees = state.debtRupees + (rent - paid),
         )
     }
 
@@ -248,14 +322,18 @@ object Game {
             state.copy(cashRupees = state.cashRupees - event.bribeRupees, holdings = seized)
         }
         is GameEvent.Bandh ->
-            // The extra day costs what a day costs: a day, and a day's interest on both sides.
+            // The extra day costs what a day costs: a day, a day's interest on both sides,
+            // and a day's rent on whatever the godowns hold.
             if (state.day >= state.runLengthDays) {
                 state
             } else {
-                state.copy(
-                    day = state.day + event.extraDays,
-                    debtRupees = state.debtRupees.withInterest(GameConstants.SAHUKAR_DAILY_INTEREST, event.extraDays),
-                    bankRupees = state.bankRupees.withInterest(GameConstants.BANK_DAILY_INTEREST, event.extraDays),
+                chargingRent(
+                    state.copy(
+                        day = state.day + event.extraDays,
+                        debtRupees = state.debtRupees.withInterest(GameConstants.SAHUKAR_DAILY_INTEREST, event.extraDays),
+                        bankRupees = state.bankRupees.withInterest(GameConstants.BANK_DAILY_INTEREST, event.extraDays),
+                    ),
+                    event.extraDays,
                 )
             }
         is GameEvent.PriceSwing -> saturating(state, event.city, event.good, event.basisPoints)

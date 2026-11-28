@@ -405,6 +405,61 @@ class GameFlowTest {
     }
 
     @Test
+    fun `the godown takes goods off your back and gives them back`() {
+        val loaded = RunState.newRun(seed = 42).copy(holdings = mapOf(GoodId.ONIONS to 5))
+        start(loaded)
+        compose.onNodeWithTag(TestTags.PLACE_GODOWN).performClick()
+
+        compose.onNodeWithText("Nothing stored in this city.").assertExists()
+        compose.onNodeWithTag(TestTags.storeAll(GoodId.ONIONS)).performClick()
+        settleEvents()
+
+        compose.onNodeWithText("Onions · 5 stored").assertExists()
+        compose.onNodeWithText("Carrying nothing.").assertExists()
+
+        compose.onNodeWithTag(TestTags.take(GoodId.ONIONS, 10)).assertIsNotEnabled()
+        compose.onNodeWithTag(TestTags.takeAll(GoodId.ONIONS)).performClick()
+        settleEvents()
+
+        compose.onNodeWithText("Nothing stored in this city.").assertExists()
+        compose.onNodeWithText("Onions · 5 carried").assertExists()
+    }
+
+    @Test
+    fun `selling from the godown pays without touching the luggage`() {
+        val parked = RunState.newRun(seed = 42)
+            .copy(godowns = mapOf(CityId.MUMBAI to mapOf(GoodId.ONIONS to 30)))
+        start(parked)
+        compose.onNodeWithTag(TestTags.PLACE_GODOWN).performClick()
+
+        compose.onNodeWithTag(TestTags.sellAllStored(GoodId.ONIONS)).performClick()
+        settleEvents()
+
+        compose.onNodeWithText("Nothing stored in this city.").assertExists()
+        compose.onNodeWithText("Close").performClick()
+
+        // Thirty onions at whatever the dump left the price at — the engine does the math.
+        val cashed = Game.apply(parked, Action.SellStored(GoodId.ONIONS, 30)) as Outcome.Done
+        compose.onNodeWithText("Cash ${formatRupees(cashed.state.cashRupees)} · Debt ₹5,000").assertExists()
+    }
+
+    @Test
+    fun `the godown man bills every day on the rails`() {
+        val parked = RunState.newRun(seed = 42)
+            .copy(godowns = mapOf(CityId.MUMBAI to mapOf(GoodId.ONIONS to 10)))
+        start(parked)
+        tapCity(CityId.DELHI)
+        compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+        settleEvents()
+
+        // One day on the rails at fifty a day for the goods sitting in Mumbai,
+        // the sahukar's 8% on the day besides.
+        compose.onNodeWithText("Cash ₹9,950 · Debt ₹5,400").assertExists()
+        compose.onNodeWithTag(TestTags.PLACE_GODOWN).performClick()
+        compose.onNodeWithText("Nothing stored in this city.").assertExists()
+    }
+
+    @Test
     fun `news on the price shows in the mandi`() {
         val shifted = newRun.copy(
             priceShifts = listOf(PriceShift(CityId.MUMBAI, GoodId.ONIONS, 5_000)),

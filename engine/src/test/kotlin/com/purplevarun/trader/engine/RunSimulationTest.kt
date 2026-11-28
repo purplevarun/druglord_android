@@ -18,6 +18,9 @@ class RunSimulationTest {
         var deposits = 0
         var withdrawals = 0
         var upgrades = 0
+        var stored = 0
+        var retrieved = 0
+        var soldStored = 0
 
         repeat(RUNS) {
             var state = RunState.newRun(seed = random.nextLong())
@@ -34,6 +37,9 @@ class RunSimulationTest {
                         is Action.Deposit -> deposits++
                         is Action.Withdraw -> withdrawals++
                         is Action.BuyTransport -> upgrades++
+                        is Action.Store -> stored++
+                        is Action.Retrieve -> retrieved++
+                        is Action.SellStored -> soldStored++
                     }
                     state = outcome.state
                 }
@@ -43,6 +49,14 @@ class RunSimulationTest {
                 assertTrue("luggage overflowed after $action", state.luggageUsed <= state.luggageCapacity)
                 assertTrue("day left the run after $action", state.day in 1..state.runLengthDays)
                 assertTrue("an empty good was listed after $action", state.holdings.values.all { it > 0 })
+                assertTrue(
+                    "an empty godown was listed after $action",
+                    state.godowns.values.all { goods -> goods.values.all { it > 0 } && goods.isNotEmpty() },
+                )
+                assertTrue(
+                    "a godown overflowed after $action",
+                    state.godowns.values.all { it.values.sum() <= GameConstants.GODOWN_CAPACITY_UNITS },
+                )
             }
         }
 
@@ -54,9 +68,10 @@ class RunSimulationTest {
         assertTrue("random play should deposit", deposits > 0)
         assertTrue("random play should withdraw", withdrawals > 0)
         assertTrue("random play should upgrade luggage", upgrades > 0)
+        assertTrue("random play should use the godowns", stored > 0 && retrieved > 0 && soldStored > 0)
     }
 
-    private fun randomAction(random: Random): Action = when (random.nextInt(8)) {
+    private fun randomAction(random: Random): Action = when (random.nextInt(11)) {
         0 -> Action.Buy(GoodId.entries.random(random), random.nextInt(-2, 40))
         1 -> Action.Sell(GoodId.entries.random(random), random.nextInt(-2, 40))
         2 -> Action.Borrow(random.nextLong(-1_000, 60_000))
@@ -64,6 +79,9 @@ class RunSimulationTest {
         4 -> Action.Deposit(random.nextLong(-1_000, 60_000))
         5 -> Action.Withdraw(random.nextLong(-1_000, 60_000))
         6 -> Action.BuyTransport(TransportId.entries.random(random))
+        7 -> Action.Store(GoodId.entries.random(random), random.nextInt(-2, 40))
+        8 -> Action.Retrieve(GoodId.entries.random(random), random.nextInt(-2, 40))
+        9 -> Action.SellStored(GoodId.entries.random(random), random.nextInt(-2, 40))
         else -> Action.Travel(CityId.entries.random(random))
     }
 

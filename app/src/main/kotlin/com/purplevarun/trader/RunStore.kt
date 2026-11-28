@@ -22,6 +22,7 @@ data class BestRun(
  * the app being closed. No libraries: the file format is hand-rolled and versioned.
  * Format 1 predates the facilities: a run saved then loads with no savings and a jhola.
  * Format 2 predates the dice and the news: a run saved then loads untouched by either.
+ * Format 3 predates the godowns: a run saved then loads with nothing stored.
  */
 class RunStore(context: Context) {
 
@@ -45,6 +46,7 @@ class RunStore(context: Context) {
                 ?: GameConstants.STARTING_TRANSPORT,
             rngRolls = prefs.getLong(KEY_RUN_RNG, 0),
             priceShifts = shiftsFromString(prefs.getString(KEY_RUN_SHIFTS, "")!!),
+            godowns = godownsFromString(prefs.getString(KEY_RUN_GODOWNS, "")!!),
             holdings = holdingsFromString(prefs.getString(KEY_RUN_HOLDINGS, "")!!),
         )
     }.getOrNull()
@@ -63,6 +65,7 @@ class RunStore(context: Context) {
             .putString(KEY_RUN_TRANSPORT, run.transport.name)
             .putLong(KEY_RUN_RNG, run.rngRolls)
             .putString(KEY_RUN_SHIFTS, shiftsToString(run.priceShifts))
+            .putString(KEY_RUN_GODOWNS, godownsToString(run.godowns))
             .putString(KEY_RUN_HOLDINGS, holdingsToString(run.holdings))
             .apply()
     }
@@ -113,6 +116,20 @@ class RunStore(context: Context) {
                 PriceShift(CityId.valueOf(city), GoodId.valueOf(good), basisPoints.toInt())
             }
 
+    /** "DELHI>KESAR:2,ONIONS:3;MUMBAI>GOLD:1" — cities split by ';', their goods the usual way. */
+    private fun godownsToString(godowns: Map<CityId, Map<GoodId, Int>>): String =
+        godowns.entries.joinToString(";") { (city, goods) ->
+            "${city.name}>" + goods.entries.joinToString(",") { (good, quantity) -> "${good.name}:$quantity" }
+        }
+
+    private fun godownsFromString(saved: String): Map<CityId, Map<GoodId, Int>> =
+        saved.split(";")
+            .filter { it.isNotEmpty() }
+            .associate { entry ->
+                val (city, goods) = entry.split(">")
+                CityId.valueOf(city) to holdingsFromString(goods)
+            }
+
     private fun holdingsToString(holdings: Map<GoodId, Int>): String =
         holdings.entries.joinToString(",") { (good, quantity) -> "${good.name}:$quantity" }
 
@@ -127,7 +144,7 @@ class RunStore(context: Context) {
     companion object {
         const val MAX_BEST_RUNS = 5
         private const val PREFS_NAME = "runs"
-        private const val FORMAT_VERSION = 3
+        private const val FORMAT_VERSION = 4
         private const val KEY_VERSION = "version"
         private const val KEY_RUN_PRESENT = "run.present"
         private const val KEY_RUN_SEED = "run.seed"
@@ -140,6 +157,7 @@ class RunStore(context: Context) {
         private const val KEY_RUN_TRANSPORT = "run.transport"
         private const val KEY_RUN_RNG = "run.rng"
         private const val KEY_RUN_SHIFTS = "run.shifts"
+        private const val KEY_RUN_GODOWNS = "run.godowns"
         private const val KEY_RUN_HOLDINGS = "run.holdings"
         private const val KEY_BEST_COUNT = "best.count"
         private const val KEY_BEST_NET = "best.net"

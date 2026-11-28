@@ -18,8 +18,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.purplevarun.trader.R
 import com.purplevarun.trader.engine.Action
+import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.Game
 import com.purplevarun.trader.engine.GameConstants
+import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.Outcome
 import com.purplevarun.trader.engine.RunState
 
@@ -226,6 +228,156 @@ fun LuggageSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
             )
         },
     )
+}
+
+/**
+ * The godown's sheet: what is stored in this city (and what it costs per day), what you
+ * carry that could be stored, and where else goods sit — those are only looked at here,
+ * never touched from afar.
+ */
+@Composable
+fun GodownSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit) {
+    val storedHere = state.godowns[state.city].orEmpty()
+    Sheet(
+        onDismiss = onDismiss,
+        testTag = TestTags.GODOWN_SHEET,
+        content = {
+            TitleLine(
+                title = stringResource(R.string.place_godown),
+                status = if (storedHere.isEmpty()) {
+                    stringResource(R.string.godown_nothing)
+                } else {
+                    stringResource(
+                        R.string.godown_stored,
+                        state.godownUsed(state.city),
+                        GameConstants.GODOWN_DAILY_RENT_RUPEES,
+                    )
+                },
+            )
+            Spacer(Modifier.height(UiDimens.SheetLineGap))
+            BasicText(
+                stringResource(R.string.godown_blurb, GameConstants.GODOWN_DAILY_RENT_RUPEES),
+                style = UiType.Body,
+            )
+
+            Spacer(Modifier.height(UiDimens.SectionGap))
+            BasicText(stringResource(R.string.godown_here), style = UiType.Overline)
+            Spacer(Modifier.height(UiDimens.SheetLineGap))
+            if (storedHere.isEmpty()) {
+                BasicText(stringResource(R.string.godown_here_empty), style = UiType.Body)
+            } else {
+                for ((good, quantity) in storedHere) {
+                    Spacer(Modifier.height(UiDimens.SheetLineGap))
+                    BasicText(
+                        stringResource(R.string.stored_count, stringResource(goodNameRes(good)), quantity),
+                        style = UiType.GoodName,
+                    )
+                    AmountRow(verb = stringResource(R.string.action_take)) {
+                        for (units in GameConstants.GODOWN_STEPS_UNITS) {
+                            AmountChip(
+                                text = "$units",
+                                label = stringResource(R.string.take_units, units, stringResource(goodNameRes(good))),
+                                enabled = Game.check(state, Action.Retrieve(good, units)) == null,
+                                onClick = { onAction(Action.Retrieve(good, units)) },
+                                modifier = Modifier.testTag(TestTags.take(good, units)),
+                            )
+                        }
+                        AmountChip(
+                            text = stringResource(R.string.action_all),
+                            label = stringResource(R.string.take_all, stringResource(goodNameRes(good))),
+                            enabled = Game.check(state, Action.Retrieve(good, quantity)) == null,
+                            onClick = { onAction(Action.Retrieve(good, quantity)) },
+                            modifier = Modifier.testTag(TestTags.takeAll(good)),
+                        )
+                    }
+                    AmountRow(verb = stringResource(R.string.action_sell)) {
+                        AmountChip(
+                            text = stringResource(R.string.action_all),
+                            label = stringResource(R.string.sell_stored_all, stringResource(goodNameRes(good))),
+                            enabled = Game.check(state, Action.SellStored(good, quantity)) == null,
+                            onClick = { onAction(Action.SellStored(good, quantity)) },
+                            modifier = Modifier.testTag(TestTags.sellAllStored(good)),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(UiDimens.SectionGap))
+            BasicText(
+                stringResource(R.string.godown_carried, stringResource(transportNameRes(state.transport)).lowercase()),
+                style = UiType.Overline,
+            )
+            Spacer(Modifier.height(UiDimens.SheetLineGap))
+            if (state.holdings.isEmpty()) {
+                BasicText(stringResource(R.string.godown_carried_empty), style = UiType.Body)
+            } else {
+                for ((good, quantity) in state.holdings) {
+                    Spacer(Modifier.height(UiDimens.SheetLineGap))
+                    BasicText(
+                        stringResource(R.string.carried_count, stringResource(goodNameRes(good)), quantity),
+                        style = UiType.GoodName,
+                    )
+                    AmountRow(verb = stringResource(R.string.action_store)) {
+                        for (units in GameConstants.GODOWN_STEPS_UNITS) {
+                            AmountChip(
+                                text = "$units",
+                                label = stringResource(R.string.store_units, units, stringResource(goodNameRes(good))),
+                                enabled = Game.check(state, Action.Store(good, units)) == null,
+                                onClick = { onAction(Action.Store(good, units)) },
+                                modifier = Modifier.testTag(TestTags.store(good, units)),
+                            )
+                        }
+                        AmountChip(
+                            text = stringResource(R.string.action_all),
+                            label = stringResource(R.string.store_all, stringResource(goodNameRes(good))),
+                            enabled = Game.check(state, Action.Store(good, quantity)) == null,
+                            onClick = { onAction(Action.Store(good, quantity)) },
+                            modifier = Modifier.testTag(TestTags.storeAll(good)),
+                        )
+                    }
+                }
+            }
+
+            val elsewhere = state.godowns.filterKeys { it != state.city }
+            if (elsewhere.isNotEmpty()) {
+                Spacer(Modifier.height(UiDimens.SectionGap))
+                BasicText(
+                    stringResource(R.string.godown_elsewhere, elsewhereSummary(elsewhere)),
+                    style = UiType.Body,
+                )
+            }
+        },
+        actions = {
+            TextButton(
+                text = stringResource(R.string.close),
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth().testTag(TestTags.GODOWN_CLOSE),
+            )
+        },
+    )
+}
+
+/** "Delhi · onions ×30, kesar ×5; Mumbai · gold ×1" — what sits in godowns elsewhere. */
+@Composable
+private fun elsewhereSummary(elsewhere: Map<CityId, Map<GoodId, Int>>): String {
+    val separator = stringResource(R.string.list_separator)
+    val parts = mutableListOf<String>()
+    for ((city, goods) in elsewhere) {
+        val goodsParts = mutableListOf<String>()
+        for ((good, quantity) in goods) {
+            goodsParts += stringResource(
+                R.string.godown_goods_count,
+                stringResource(goodNameRes(good)),
+                quantity,
+            )
+        }
+        parts += stringResource(
+            R.string.godown_elsewhere_entry,
+            stringResource(cityNameRes(city)),
+            goodsParts.joinToString(separator),
+        )
+    }
+    return parts.joinToString(separator)
 }
 
 /**

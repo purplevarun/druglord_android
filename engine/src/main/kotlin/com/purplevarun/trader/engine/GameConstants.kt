@@ -89,6 +89,14 @@ object GameConstants {
     const val PRICE_SHIFT_DAILY_DECAY = 0.5
     const val PRICE_SHIFT_MIN_BP = 50
 
+    // The godowns: rent while goods sit, and how much one holds
+    /** Rent per day for each city where goods are stored, billed on days that pass. */
+    const val GODOWN_DAILY_RENT_RUPEES = 50L
+    /** How many units one city's godown holds, whatever the goods. */
+    const val GODOWN_CAPACITY_UNITS = 500
+    /** The one-tap unit amounts the godown sheet offers, before the All chip. */
+    val GODOWN_STEPS_UNITS = listOf(1, 10)
+
     /**
      * Base prices at year-2000 rupee levels, per trade unit.
      * SOURCED: cotton (2000-01 support price, RBI and Economic Survey), masala (black pepper,

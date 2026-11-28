@@ -59,6 +59,7 @@ class ScreenLayoutTest(private val case: Case) {
         SAHUKAR(TestTags.borrow(1_000), showsMap = true),
         BANK(TestTags.deposit(1_000), showsMap = true),
         LUGGAGE(TestTags.buyTransport(TransportId.TRUNK), showsMap = true),
+        GODOWN(TestTags.GODOWN_CLOSE, showsMap = true),
         EVENT(TestTags.GOT_IT_EVENT, showsMap = true),
         NEW_RUN(TestTags.START_RUN, showsMap = false),
         ENDED(TestTags.NEW_RUN, showsMap = false),
@@ -77,6 +78,7 @@ class ScreenLayoutTest(private val case: Case) {
             SAHUKAR -> Phase.Playing(run, Overlay.Sahukar)
             BANK -> Phase.Playing(run, Overlay.Bank)
             LUGGAGE -> Phase.Playing(run, Overlay.Luggage)
+            GODOWN -> Phase.Playing(run, Overlay.Godown)
             EVENT -> Phase.Playing(
                 run,
                 Overlay.None,
@@ -129,6 +131,10 @@ class ScreenLayoutTest(private val case: Case) {
             transport = TransportId.JHOLA,
             rngRolls = 40,
             priceShifts = listOf(PriceShift(CityId.BANGALORE, GoodId.ONIONS, 2_500)),
+            godowns = mapOf(
+                CityId.BANGALORE to mapOf(GoodId.SILK_SAREES to 400, GoodId.ONIONS to 95),
+                CityId.DELHI to mapOf(GoodId.KESAR to 5),
+            ),
             holdings = mapOf(GoodId.SILK_SAREES to 40, GoodId.GOLD to 30, GoodId.ONIONS to 29),
         )
 

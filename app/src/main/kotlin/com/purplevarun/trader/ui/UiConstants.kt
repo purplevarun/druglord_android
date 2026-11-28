@@ -279,6 +279,15 @@ object TestTags {
     const val WITHDRAW_ALL = "withdrawAll"
     const val EVENT_SHEET = "eventSheet"
     const val GOT_IT_EVENT = "gotItEvent"
+    const val PLACE_GODOWN = "placeGodown"
+    const val GODOWN_SHEET = "godownSheet"
+    const val GODOWN_CLOSE = "godownClose"
+
+    fun store(good: com.purplevarun.trader.engine.GoodId, units: Int) = "store_${good.name}_$units"
+    fun storeAll(good: com.purplevarun.trader.engine.GoodId) = "store_${good.name}_all"
+    fun take(good: com.purplevarun.trader.engine.GoodId, units: Int) = "take_${good.name}_$units"
+    fun takeAll(good: com.purplevarun.trader.engine.GoodId) = "take_${good.name}_all"
+    fun sellAllStored(good: com.purplevarun.trader.engine.GoodId) = "sellStored_${good.name}_all"
 
     fun cityLabel(city: com.purplevarun.trader.engine.CityId) = "city_${city.name}"
     fun runLength(days: Int) = "runLength_$days"

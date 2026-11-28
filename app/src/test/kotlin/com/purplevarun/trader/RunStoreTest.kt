@@ -33,6 +33,7 @@ class RunStoreTest {
         transport = TransportId.TRUNK,
         rngRolls = 7,
         priceShifts = listOf(PriceShift(CityId.MUMBAI, GoodId.ONIONS, 2_500)),
+        godowns = mapOf(CityId.DELHI to mapOf(GoodId.KESAR to 2)),
         holdings = mapOf(GoodId.ONIONS to 3, GoodId.GOLD to 1),
     )
 
@@ -103,6 +104,34 @@ class RunStoreTest {
     }
 
     @Test
+    fun `a run saved before the godowns still loads, with nothing stored`() {
+        // What format version 3 wrote: dice and news, no godowns.
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("runs", 0)
+            .edit()
+            .putInt("version", 3)
+            .putBoolean("run.present", true)
+            .putLong("run.seed", 42)
+            .putInt("run.day", 12)
+            .putInt("run.length", 90)
+            .putString("run.city", "DELHI")
+            .putLong("run.cash", 42_000)
+            .putLong("run.debt", 5_000)
+            .putLong("run.bank", 8_000)
+            .putString("run.transport", "TRUNK")
+            .putLong("run.rng", 7)
+            .putString("run.shifts", "MUMBAI:ONIONS:2500")
+            .putString("run.holdings", "ONIONS:3,GOLD:1")
+            .commit()
+
+        val loaded = store.loadRun()!!
+
+        assertTrue(loaded.godowns.isEmpty())
+        assertEquals(7L, loaded.rngRolls)
+        assertEquals(2_500, loaded.shiftForIn(CityId.MUMBAI, GoodId.ONIONS))
+    }
+
+    @Test
     fun `clearing the run removes it but keeps the best runs`() {
         store.saveRun(run)
         store.recordRun(run)
@@ -118,7 +147,12 @@ class RunStoreTest {
         val scores = listOf(5_000L, 900_000L, 50_000L, 2_000_000L, 500L, 70_000L, 11_000_000L)
         for (score in scores) {
             store.recordRun(
-                run.copy(cashRupees = score + run.debtRupees, bankRupees = 0, holdings = emptyMap()),
+                run.copy(
+                    cashRupees = score + run.debtRupees,
+                    bankRupees = 0,
+                    godowns = emptyMap(),
+                    holdings = emptyMap(),
+                ),
             )
         }
 

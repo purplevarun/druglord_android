@@ -16,6 +16,8 @@ data class RunState(
     val rngRolls: Long,
     /** Local price wobbles from news and saturation, still in effect. */
     val priceShifts: List<PriceShift>,
+    /** Goods parked in godowns, per city. Only cities with goods stored are listed. */
+    val godowns: Map<CityId, Map<GoodId, Int>>,
     /** Only goods actually carried are listed, each with a quantity of at least one. */
     val holdings: Map<GoodId, Int>,
 ) {
@@ -33,22 +35,43 @@ data class RunState(
 
     fun held(good: GoodId): Int = holdings[good] ?: 0
 
+    fun stored(city: CityId, good: GoodId): Int = godowns[city]?.get(good) ?: 0
+
+    fun godownUsed(city: CityId): Int = godowns[city]?.values?.sum() ?: 0
+
+    /** Cities where goods sit, each owing rent per day that passes. */
+    val godownsInUse: Int get() = godowns.keys.size
+
+    /** Today's rent across all godowns in use. */
+    val godownRentPerDay: Long get() = GameConstants.GODOWN_DAILY_RENT_RUPEES * godownsInUse
+
     /** The total shift on [good] in this city right now, capped so a price stays sane. */
-    fun shiftFor(good: GoodId): Int = priceShifts
+    fun shiftFor(good: GoodId): Int = shiftForIn(city, good)
+
+    fun shiftForIn(city: CityId, good: GoodId): Int = priceShifts
         .filter { it.city == city && it.good == good }
         .sumOf { it.basisPoints }
         .coerceIn(-GameConstants.PRICE_SHIFT_CAP_BP, GameConstants.PRICE_SHIFT_CAP_BP)
 
-    fun priceOf(good: GoodId): Long {
+    fun priceOf(good: GoodId): Long = priceOfIn(city, good)
+
+    fun priceOfIn(city: CityId, good: GoodId): Long {
         val base = Market.price(seed, day, city, good)
-        return (base * (10_000 + shiftFor(good)) / 10_000).coerceAtLeast(1)
+        return (base * (10_000 + shiftForIn(city, good)) / 10_000).coerceAtLeast(1)
     }
 
     fun changePercentOf(good: GoodId): Int = Market.changePercent(seed, day, city, good)
 
-    /** Cash, plus savings and everything carried at today's local price, less debt. */
+    /**
+     * Cash, plus savings and everything owned, less debt. Carried goods are worth today's
+     * local price; stashed goods are worth the price in the city they are stored in.
+     */
     val netWorthRupees: Long
-        get() = cashRupees + bankRupees + holdings.entries.sumOf { (good, quantity) -> quantity * priceOf(good) } - debtRupees
+        get() = cashRupees + bankRupees +
+            holdings.entries.sumOf { (good, quantity) -> quantity * priceOf(good) } +
+            godowns.entries.sumOf { (city, goods) ->
+                goods.entries.sumOf { (good, quantity) -> quantity * priceOfIn(city, good) }
+            } - debtRupees
 
     /** The title this run earns if it ended now. */
     val rank: RankId
@@ -73,6 +96,7 @@ data class RunState(
             transport = GameConstants.STARTING_TRANSPORT,
             rngRolls = 0,
             priceShifts = emptyList(),
+            godowns = emptyMap(),
             holdings = emptyMap(),
         )
     }

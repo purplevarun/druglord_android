@@ -48,6 +48,7 @@ sealed interface Overlay {
     data object Sahukar : Overlay
     data object Bank : Overlay
     data object Luggage : Overlay
+    data object Godown : Overlay
     data object EndRun : Overlay
     data class Travel(val to: CityId) : Overlay
 }
@@ -169,6 +170,11 @@ fun GameScreenContent(
                         onAction = onAction,
                         onDismiss = { onOverlayChange(Overlay.None) },
                     )
+                    Overlay.Godown -> GodownSheet(
+                        state = run,
+                        onAction = onAction,
+                        onDismiss = { onOverlayChange(Overlay.None) },
+                    )
                     Overlay.EndRun -> EndRunSheet(
                         state = run,
                         onConfirm = onEndRun,
@@ -192,7 +198,7 @@ fun GameScreenContent(
 private const val PHASE_NEW_RUN = "newRun"
 private const val PHASE_PLAYING = "playing"
 private const val PHASE_ENDED = "ended"
-private const val SAVED_FIELDS_BEFORE_HOLDINGS = 10
+private const val SAVED_FIELDS_BEFORE_HOLDINGS = 11
 
 private val PhaseSaver = listSaver<Phase, Any>(
     save = { phase ->
@@ -222,6 +228,7 @@ private fun overlayToString(overlay: Overlay): String = when (overlay) {
     Overlay.Sahukar -> "sahukar"
     Overlay.Bank -> "bank"
     Overlay.Luggage -> "luggage"
+    Overlay.Godown -> "godown"
     Overlay.EndRun -> "endRun"
     is Overlay.Travel -> TRAVEL_PREFIX + overlay.to.name
 }
@@ -231,6 +238,7 @@ private fun stringToOverlay(saved: String): Overlay = when {
     saved == "sahukar" -> Overlay.Sahukar
     saved == "bank" -> Overlay.Bank
     saved == "luggage" -> Overlay.Luggage
+    saved == "godown" -> Overlay.Godown
     saved == "endRun" -> Overlay.EndRun
     saved.startsWith(TRAVEL_PREFIX) -> Overlay.Travel(CityId.valueOf(saved.removePrefix(TRAVEL_PREFIX)))
     else -> Overlay.None
@@ -241,6 +249,9 @@ private fun runToFields(run: RunState): List<Any> = listOf<Any>(
     run.cashRupees, run.debtRupees, run.bankRupees, run.transport.name,
     run.rngRolls,
     run.priceShifts.joinToString(",") { "${it.city.name}:${it.good.name}:${it.basisPoints}" },
+    run.godowns.entries.joinToString(";") { (city, goods) ->
+        "${city.name}>" + goods.entries.joinToString(",") { (good, quantity) -> "${good.name}:$quantity" }
+    },
 ) + GoodId.entries.map { run.held(it) }
 
 private fun fieldsToRun(saved: List<Any>): RunState = RunState(
@@ -258,6 +269,17 @@ private fun fieldsToRun(saved: List<Any>): RunState = RunState(
         .map { entry ->
             val (city, good, basisPoints) = entry.split(":")
             PriceShift(CityId.valueOf(city), GoodId.valueOf(good), basisPoints.toInt())
+        },
+    godowns = (saved[10] as String).split(";")
+        .filter { it.isNotEmpty() }
+        .associate { entry ->
+            val (city, goods) = entry.split(">")
+            CityId.valueOf(city) to goods.split(",")
+                .filter { it.isNotEmpty() }
+                .associate { item ->
+                    val (good, quantity) = item.split(":")
+                    GoodId.valueOf(good) to quantity.toInt()
+                }
         },
     holdings = GoodId.entries
         .mapIndexed { index, good -> good to saved[SAVED_FIELDS_BEFORE_HOLDINGS + index] as Int }

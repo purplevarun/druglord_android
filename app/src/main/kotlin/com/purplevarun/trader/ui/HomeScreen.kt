@@ -293,6 +293,20 @@ private fun MarketDrawer(
                 testTag = TestTags.PLACE_LUGGAGE,
                 onClick = { onOpenPlace(Overlay.Luggage) },
             )
+            PlaceChip(
+                name = stringResource(R.string.place_godown),
+                status = if (state.godownUsed(state.city) > 0) {
+                    stringResource(
+                        R.string.godown_stored,
+                        state.godownUsed(state.city),
+                        GameConstants.GODOWN_DAILY_RENT_RUPEES,
+                    )
+                } else {
+                    stringResource(R.string.godown_nothing)
+                },
+                testTag = TestTags.PLACE_GODOWN,
+                onClick = { onOpenPlace(Overlay.Godown) },
+            )
         }
     }
 }

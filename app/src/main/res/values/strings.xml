@@ -71,6 +71,29 @@
     <string name="transport_tempo">Tempo</string>
     <string name="transport_truck">Truck</string>
 
+    <!-- Godown -->
+    <string name="place_godown">Godown</string>
+    <string name="godown_stored">%1$d stored · ₹%2$d a day</string>
+    <string name="godown_nothing">nothing stored</string>
+    <string name="godown_blurb">₹%1$d a day for each city your goods sit in, billed when the train rolls. What the godown holds, pickpockets and checkposts cannot reach.</string>
+    <string name="godown_here">In the godown here</string>
+    <string name="godown_here_empty">Nothing stored in this city.</string>
+    <string name="godown_carried">In your %1$s</string>
+    <string name="godown_carried_empty">Carrying nothing.</string>
+    <string name="godown_elsewhere">Also sitting: %1$s</string>
+    <string name="godown_elsewhere_entry">%1$s · %2$s</string>
+    <string name="godown_goods_count">%1$s ×%2$d</string>
+    <string name="stored_count">%1$s · %2$d stored</string>
+    <string name="carried_count">%1$s · %2$d carried</string>
+    <string name="action_store">Store</string>
+    <string name="action_take">Take</string>
+    <string name="action_sell">Sell</string>
+    <string name="store_units">Store %1$d %2$s</string>
+    <string name="store_all">Store all %1$s</string>
+    <string name="take_units">Take %1$d %2$s</string>
+    <string name="take_all">Take all %1$s</string>
+    <string name="sell_stored_all">Sell all %1$s from the godown</string>
+
     <!-- Travel -->
     <plurals name="trip_days">
         <item quantity="one">%1$d day by train</item>
