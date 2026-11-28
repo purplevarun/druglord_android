@@ -2,7 +2,7 @@
 
 Context for the next agent or session picking up this repo. Read `AGENTS.md` first: it holds the
 rules. This file holds what is not written down anywhere else: why things are the way they are,
-the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `6cd0668`.
+the local machine, known gaps, and the plan. Last updated 27 Nov 2026, at commit `3d27009`.
 
 ## The goal
 
@@ -37,20 +37,42 @@ up days, the sahukar, the bank and the luggage shop in every city, a way to end 
 screen with a rank, and a best-runs list. The run and the list survive the app being closed.
 Details are in the commit history (`git log`); the main pieces:
 
-- `engine/`: `RunState` (the whole run: cash, debt, bank, transport, holdings; plus `isEndless`,
-  `isOnLastDay`, `rank`), `Game.apply` (the rules, including `Borrow`/`Repay`/`Deposit`/`Withdraw`/
-  `BuyTransport`), `Market` (prices derived from the run's seed, never stored), `RailNetwork`
-  (routes), `GameCalendar` (day to date), `GameConstants.RANK_THRESHOLDS`, `TRANSPORTS`,
-  `SAHUKAR_DAILY_INTEREST` (8%), `BANK_DAILY_INTEREST` (1%), `TRANSACTION_STEPS_RUPEES`.
-- `app/`: `GameScreen` (holds `Phase`: `NewRun` / `Playing` / `Ended`; overlays include
-  `Sahukar`/`Bank`/`Luggage`), `HomeScreen` (places chips in the bottom drawer), `RailMap`,
-  `MarketScreen`, `Sheet` (shared bottom-sheet chrome used by all five sheets),
-  `FacilitiesSheets` (Sahukar/Bank/Luggage), `NewRunScreen`, `EndScreen`,
-  `RunStore` (SharedPreferences, hand-rolled format at **v2**; v1 saves load with no bank and
-  a jhola; `MAX_BEST_RUNS` = 5).
-- Tests: 50 engine tests (including a 20,000-move simulation that also plays the facilities)
-  and 1,800+ app tests (120 more skipped, as designed). `./gradlew test` takes under a minute
-  on this Mac.
+- `engine/`: `RunState` (the whole run: cash, debt, bank, transport, holdings, `rngRolls`,
+  `priceShifts`; plus `isEndless`, `isOnLastDay`, `rank`), `Game.check` (pure validation) +
+  `Game.apply` (check, move, then roll the dice; `Outcome.Done` carries `events`), `Market`
+  (prices derived from the run's seed, never stored), `RailNetwork` (routes), `GameCalendar`
+  (day to date), `GameConstants.RANK_THRESHOLDS`, `TRANSPORTS`, `SAHUKAR_DAILY_INTEREST` (8%),
+  `BANK_DAILY_INTEREST` (1%), `TRANSACTION_STEPS_RUPEES`, the event constants, and
+  `Game.applyEvent` (what each `GameEvent` does to the state; internal test seam).
+- `app/`: `GameScreen` (holds `Phase`: `NewRun` / `Playing` / `Ended`; `Playing` also queues
+  `pendingEvents`; overlays include `Sahukar`/`Bank`/`Luggage`), `HomeScreen` (places chips in
+  the bottom drawer), `RailMap`, `MarketScreen`, `Sheet` (shared bottom-sheet chrome used by
+  all six sheets), `FacilitiesSheets` (Sahukar/Bank/Luggage), `EventSheet` (one event told,
+  one tap to dismiss, "N more to tell"), `NewRunScreen`, `EndScreen`,
+  `RunStore` (SharedPreferences, hand-rolled format at **v3**; v1 loads with no bank and a
+  jhola, v2 loads untouched by dice and news; `MAX_BEST_RUNS` = 5).
+- Tests: 64 engine tests (including a 20,000-move simulation that also plays the facilities)
+  and 1,900+ app tests (120 more skipped, as designed). `./gradlew test` takes under a minute
+  on this Mac. Engine tests that want a move without the dice use `Game.applyQuietly`
+  (internal); UI tests drain event sheets with `settleEvents()`.
+
+### Decisions made for slice 3 (27 Nov 2026)
+
+- All four event families fire **on every move**: 5% per city action, 22% per day on the
+  rails (`EVENT_CHANCE_PER_CITY_ACTION`/`EVENT_CHANCE_PER_TRAVEL_DAY`). Deterministic: the
+  roll comes from `seed` + `rngRolls`, so the same run replays the same luck.
+- Pickpockets take 5–15% of pocket cash (never the bank). Checkposts take a 10% bribe, or
+  20% of one good when the pocket is empty. A bandh adds a day — plus a day's interest both
+  ways. Mandi news (`PriceSwing`) swings one good ±40–120% in the current city.
+- Saturation is **both ways and priced into the trade**: a buy or sell shifts the local
+  price ±10 bp per unit (cap ±60%, `PRICE_SHIFT_CAP_BP`) *before* the trade prices, so a
+  heavy sell eats its own dump and there is no free round trip. Shifts halve each travel
+  day. Small buys can nudge < ₹1 and vanish — that's honest rounding, not a bug.
+- UI is a one-tap sheet per the user's call: events land in `pendingEvents` and are told
+  one at a time on top of whatever is open. They are not saved: restoring mid-run skips
+  the telling but keeps the effects.
+- `Game.check` is the pure validation the sheets use to grey out impossible moves; earlier
+  they called `Game.apply` and would have burned dice rolls on a discarded outcome.
 
 ### Decisions made for slice 2 (27 Nov 2026)
 
@@ -84,8 +106,9 @@ Details are in the commit history (`git log`); the main pieces:
   luggage slots with every unit taking one slot, the city price table and each good's volatility.
 - **From the mockups, not built:** the exact-amount keypad, the "movers" ticker, travel rumours,
   each city's speciality line.
-- **Saved-state format is v2.** `RunStore` reads v1 too (those runs load with no savings and a
-  jhola). A format change still needs a bump or saved runs silently reset.
+- **Saved-state format is v3.** `RunStore` reads v1 and v2 too (v1 loads with no savings and
+  a jhola; v2 loads with no dice history and no price shifts). A format change still needs a
+  bump or saved runs silently reset.
 - **Android 7 (API 24-25):** bold Gelasio renders as regular, because those versions cannot pick
   a weight from a variable font. Never tested on a real old phone.
 - **Agent skills:** never checked loading in Copilot, Devin or Windsurf, only that the files are
@@ -105,10 +128,8 @@ then a check on the emulator, then commit and push to `main`.
 1. ~~End of run and saving.~~ **Done** in `a2ddbd4` (issue #1).
 2. ~~Sahukar and bank.~~ **Done** in `6cd0668` (issue #2): 8%/day debt, 1%/day pickpocket-safe
    savings, jhola→truck upgrades, places chips in the drawer opening sheets.
-3. **Random events.** A checkpost (pay, talk your way through, or take the back road for a day),
-   pickpockets on the train, late trains, bandhs, and price spikes or crashes (monsoon, bumper
-   harvest, Diwali, wedding season). Also market saturation: dumping a lot in one city pushes
-   its price down for a few days.
+3. ~~Random events.~~ **Done** in `3d27009` (issue #3): pickpockets, checkposts, bandhs and
+   mandi news on every move; trades move the local price, which fades each travel day.
 4. **Godown:** a store in each city.
 5. **Exact amounts:** a keypad on long press, and a max button.
 6. **The rest of the mockup:** the movers ticker, rumours and city specialities.
@@ -145,15 +166,21 @@ the earlier notes describe.
   weight must be selected with `FontVariation`. `DisplayFontTest` guards this.
 - **Back button in tests:** wait for idle before pressing back, or the back handler is not
   registered yet.
+- **Emulator tap coordinates:** screenshot pixels are scaled; taps must use the bounds from
+  `adb shell uiautomator dump`, not the screenshot. Tapping scaled coordinates hits the scrim
+  and silently dismisses sheets (hit twice).
+- **Deterministic events:** a UI test that must see an event finds it by scanning `rngRolls`
+  and calling `Game.apply` until `Done.events` is non-empty, then starts the run with that
+  count — no flakiness, no mocking.
 - **Release builds:** unit tests are switched off for the release build, because the UI tests
   need the debug-only test activity.
 
 ## Suggested skills
 
-- `grilling` before each slice: slices 1 and 2 were decided by asking the open questions
-  directly (worked well). Slice 3 open questions: which events fire when (on travel days only?
-  also mid-city?), odds, whether choices like the checkpost bribe cost cash or days, and how
-  saturation depth/recovery works.
+- `grilling` before each slice: slices 1–3 were decided by asking the open questions
+  directly (worked well). Slice 4 open questions: how much a godown costs per city, whether
+  it charges rent per day, how much it holds, and whether stashed goods sell remotely or
+  only in person.
 - `to-spec`, then `to-tickets`, to put the slice into GitHub Issues (the tracker is set up;
   neither skill is vendored here yet, issues were written by hand so far).
 - `tdd` while building. The agreed seams: `Game.apply`/`RunState` for rules,
