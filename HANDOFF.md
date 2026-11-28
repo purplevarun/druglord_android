@@ -197,17 +197,19 @@ X days and if u dont pay them back they will kill u."
 
 ## Known gaps and open points
 
-- **Prices:** five of the eight base prices are estimates with no year-2000 source: onions,
-  basmati, chai, silk sarees, kesar. Gold, cotton and masala (black pepper) are sourced. Each is
-  flagged `SOURCED` or `ESTIMATE` in `GameConstants.GOODS`.
+- **Prices:** four of the eight base prices are estimates with no year-2000 source: onions,
+  basmati, silk sarees, kesar — a later verification pass found each inside a plausible
+  year-2000 range, but nothing citeable. Gold, cotton, masala (black pepper) and chai are
+  sourced. Each is flagged `SOURCED` or `ESTIMATE` in `GameConstants.GOODS`.
 - **Tuning I chose, never confirmed by the user:** ₹10,000 starting cash, ₹5,000 debt, 100
   luggage slots with every unit taking one slot, the city price table and each good's
   volatility, the living-cost table (₹60–₹120/city), the ten-day collector clock, the ₹5,000
   survival loan, the ₹50,000 borrow cap, 500-unit godowns at ₹50/day, transport prices
   ₹6k/₹25k/₹90k. The balance pass (`e142d36`) tuned the spreads and transport prices against
   a bot simulation; the bands it asserts live in `BalanceTest`.
-- **The mockup is fully built.** The game is named **Saudagar**; balance is all that remains
-  before releases.
+- **The plan is fully built and v1.0.0 is released.** Signed APK verified installing over an
+  existing copy (same signature, saved run intact). Vocabulary lives in `GLOSSARY.md`;
+  the two load-bearing decisions are recorded in `docs/adr/`.
 - **Saved-state format is v6.** `RunStore` reads v1–v5 (v4 debts get a fresh ten-day clock,
   v5 loads with no rumours). A format change still needs a bump or saved runs silently
   reset.
@@ -218,9 +220,10 @@ X days and if u dont pay them back they will kill u."
 - **pstack is not added.** Its Claude Code version lives in `cursor/plugins` under
   `harness/pstack/`. Check its licence before copying it into this repo the way
   `scripts/sync_agent_skills.py` copies the Pocock skills.
-- **The keystore has one copy.** `release.keystore` and `keystore.properties` exist only at the
-  repo root on this Mac (gitignored). The user was told to back them up and has not
-  confirmed it. If they are lost, installed copies must be uninstalled before an update.
+- **The keystore is zipped, still on this Mac.** `~/Desktop/saudagar-keystore-backup-*.zip`
+  holds `release.keystore` + `keystore.properties` (passwords inside, plaintext — treat it as a
+  secret). It is not a real backup until moved off this machine. If the keystore is ever lost,
+  installed copies must be uninstalled before an update.
 
 ## The plan
 
