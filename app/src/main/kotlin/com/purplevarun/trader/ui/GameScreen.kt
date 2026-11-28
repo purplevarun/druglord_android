@@ -38,8 +38,11 @@ sealed interface Phase {
         val overlay: Overlay,
         val pendingEvents: List<GameEvent> = emptyList(),
     ) : Phase
-    data class Ended(val run: RunState) : Phase
+    data class Ended(val run: RunState, val ending: Ending) : Phase
 }
+
+/** How a run ended: walked away rich, out of everything, or collected by the sahukar's man. */
+enum class Ending { RETIRED, BROKE, COLLECTED }
 
 /** What is shown over the map, if anything. */
 sealed interface Overlay {
@@ -59,7 +62,7 @@ sealed interface Overlay {
  * changes so closing the app loses nothing. Every move goes through the engine.
  */
 @Composable
-fun GameScreen(store: RunStore, newRun: (Int) -> RunState) {
+fun GameScreen(store: RunStore, newRun: () -> RunState) {
     var phase by rememberSaveable(stateSaver = PhaseSaver) {
         mutableStateOf(store.loadRun()?.let { Phase.Playing(it, Overlay.None) } ?: Phase.NewRun)
     }
@@ -92,12 +95,12 @@ fun GameScreen(store: RunStore, newRun: (Int) -> RunState) {
         onEventDismissed = {
             (phase as? Phase.Playing)?.let { phase = it.copy(pendingEvents = it.pendingEvents.drop(1)) }
         },
-        onStartRun = { days -> phase = Phase.Playing(newRun(days), Overlay.None) },
-        onEndRun = {
+        onStartRun = { phase = Phase.Playing(newRun(), Overlay.None) },
+        onEndRun = { ending ->
             (phase as? Phase.Playing)?.let { current ->
                 store.recordRun(current.run)
                 store.clearRun()
-                phase = Phase.Ended(current.run)
+                phase = Phase.Ended(current.run, ending)
             }
         },
         onNewRun = { phase = Phase.NewRun },
@@ -112,14 +115,14 @@ fun GameScreenContent(
     onAction: (Action) -> Unit,
     onOverlayChange: (Overlay) -> Unit,
     onEventDismissed: () -> Unit,
-    onStartRun: (Int) -> Unit,
-    onEndRun: () -> Unit,
+    onStartRun: () -> Unit,
+    onEndRun: (Ending) -> Unit,
     onNewRun: () -> Unit,
 ) {
     Box(Modifier.fillMaxSize().testTag(TestTags.SCREEN)) {
         when (phase) {
             Phase.NewRun -> NewRunScreen(bestRuns = bestRuns, onStart = onStartRun)
-            is Phase.Ended -> EndScreen(run = phase.run, onNewRun = onNewRun)
+            is Phase.Ended -> EndScreen(run = phase.run, ending = phase.ending, onNewRun = onNewRun)
             is Phase.Playing -> {
                 val run = phase.run
                 if (phase.overlay == Overlay.Market) {
@@ -177,17 +180,31 @@ fun GameScreenContent(
                     )
                     Overlay.EndRun -> EndRunSheet(
                         state = run,
-                        onConfirm = onEndRun,
+                        onConfirm = { onEndRun(Ending.RETIRED) },
                         onDismiss = { onOverlayChange(Overlay.None) },
                     )
                     else -> {}
                 }
-                // What the day brought is told last, on top of whatever else is open.
+                // What the day brought is told on top of whatever else is open, and what
+                // the day demands — the collector, then the end of options — on top of that.
                 phase.pendingEvents.firstOrNull()?.let { event ->
                     EventSheet(
                         event = event,
                         moreAfter = phase.pendingEvents.size - 1,
                         onDismissed = onEventDismissed,
+                    )
+                }
+                if (run.collectorDue) {
+                    CollectorSheet(
+                        state = run,
+                        onAction = onAction,
+                        onDeath = { onEndRun(Ending.COLLECTED) },
+                    )
+                } else if (run.isBroke) {
+                    BrokeSheet(
+                        state = run,
+                        onAction = onAction,
+                        onDeath = { onEndRun(Ending.BROKE) },
                     )
                 }
             }
@@ -205,7 +222,7 @@ private val PhaseSaver = listSaver<Phase, Any>(
         when (phase) {
             Phase.NewRun -> listOf(PHASE_NEW_RUN)
             is Phase.Playing -> listOf<Any>(PHASE_PLAYING, overlayToString(phase.overlay)) + runToFields(phase.run)
-            is Phase.Ended -> listOf<Any>(PHASE_ENDED) + runToFields(phase.run)
+            is Phase.Ended -> listOf<Any>(PHASE_ENDED, phase.ending.name) + runToFields(phase.run)
         }
     },
     restore = { saved ->
@@ -214,7 +231,7 @@ private val PhaseSaver = listSaver<Phase, Any>(
                 run = fieldsToRun(saved.drop(2)),
                 overlay = stringToOverlay(saved[1] as String),
             )
-            PHASE_ENDED -> Phase.Ended(fieldsToRun(saved.drop(1)))
+            PHASE_ENDED -> Phase.Ended(fieldsToRun(saved.drop(2)), Ending.valueOf(saved[1] as String))
             else -> Phase.NewRun
         }
     },
@@ -245,8 +262,8 @@ private fun stringToOverlay(saved: String): Overlay = when {
 }
 
 private fun runToFields(run: RunState): List<Any> = listOf<Any>(
-    run.seed, run.day, run.runLengthDays, run.city.name,
-    run.cashRupees, run.debtRupees, run.bankRupees, run.transport.name,
+    run.seed, run.day, run.city.name,
+    run.cashRupees, run.debtRupees, run.debtDueDay, run.bankRupees, run.transport.name,
     run.rngRolls,
     run.priceShifts.joinToString(",") { "${it.city.name}:${it.good.name}:${it.basisPoints}" },
     run.godowns.entries.joinToString(";") { (city, goods) ->
@@ -257,10 +274,10 @@ private fun runToFields(run: RunState): List<Any> = listOf<Any>(
 private fun fieldsToRun(saved: List<Any>): RunState = RunState(
     seed = saved[0] as Long,
     day = saved[1] as Int,
-    runLengthDays = saved[2] as Int,
-    city = CityId.valueOf(saved[3] as String),
-    cashRupees = saved[4] as Long,
-    debtRupees = saved[5] as Long,
+    city = CityId.valueOf(saved[2] as String),
+    cashRupees = saved[3] as Long,
+    debtRupees = saved[4] as Long,
+    debtDueDay = saved[5] as Int,
     bankRupees = saved[6] as Long,
     transport = TransportId.valueOf(saved[7] as String),
     rngRolls = saved[8] as Long,

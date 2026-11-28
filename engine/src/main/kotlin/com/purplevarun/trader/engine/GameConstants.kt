@@ -11,12 +11,24 @@ object GameConstants {
     const val START_MONTH = 1
     const val START_DAY_OF_MONTH = 1
 
-    // Run length
-    val RUN_LENGTH_OPTIONS_DAYS = listOf(30, 60, 90)
-    const val DEFAULT_RUN_LENGTH_DAYS = 60
+    /**
+     * What a day of living costs in each city, billed on every move (and per day on the
+     * rails at the destination's rate). Game tuning, not history; Srinagar is cheapest.
+     */
+    val LIVING_COST_RUPEES: Map<CityId, Long> = mapOf(
+        CityId.MUMBAI to 120L,
+        CityId.DELHI to 100L,
+        CityId.CALCUTTA to 80L,
+        CityId.SRINAGAR to 60L,
+        CityId.BANGALORE to 90L,
+        CityId.HYDERABAD to 70L,
+    )
 
-    /** A run with this many days never ends on its own: the trader retires when they choose. */
-    const val ENDLESS_RUN_LENGTH_DAYS = Int.MAX_VALUE
+    /** Days after a loan begins before the collector comes for the whole debt. */
+    const val COLLECTOR_AFTER_DAYS = 10
+
+    /** What the sahukar lends a trader with nothing left: enough to climb back, one shot. */
+    const val SURVIVAL_LOAN_RUPEES = 5_000L
 
     /**
      * Final net worth to rank: the first threshold the score reaches or passes.
@@ -41,9 +53,9 @@ object GameConstants {
     val STARTING_TRANSPORT = TransportId.JHOLA
 
     // The facilities, in every city
-    /** What the sahukar adds to a debt each day that passes on the rails. */
+    /** What the sahukar adds to a debt each day that passes. */
     const val SAHUKAR_DAILY_INTEREST = 0.08
-    /** What the bank adds to savings each day that passes on the rails. */
+    /** What the bank adds to savings each day that passes. */
     const val BANK_DAILY_INTEREST = 0.01
     /** The amounts the facility sheets offer, one tap at a time. */
     val TRANSACTION_STEPS_RUPEES = listOf(1_000L, 10_000L)

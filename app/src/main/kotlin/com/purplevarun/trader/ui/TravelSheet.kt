@@ -37,16 +37,7 @@ fun TravelSheet(state: RunState, destination: CityId, onBoard: () -> Unit, onDis
         val separator = stringResource(R.string.list_separator)
         stringResource(R.string.trip_via, daysText, changes.map { stringResource(cityNameRes(it)) }.joinToString(separator))
     }
-    val daysLeftAfter = state.daysLeft - days
-    val detail = when {
-        !canBoard -> stringResource(R.string.too_far, dateText(state.runLengthDays))
-        state.isEndless -> stringResource(R.string.arrival_endless, dateText(state.day + days))
-        else -> stringResource(
-            R.string.arrival,
-            dateText(state.day + days),
-            pluralStringResource(R.plurals.days_left_after_trip, daysLeftAfter, daysLeftAfter),
-        )
-    }
+    val detail = stringResource(R.string.arrival, dateText(state.day + days))
 
     Sheet(
         onDismiss = onDismiss,

@@ -16,16 +16,12 @@ import com.purplevarun.trader.R
 import com.purplevarun.trader.engine.RunState
 
 /**
- * The sheet that asks before a run ends: what the goods fetch today, and what the run scores.
- * On the last day of a finite run it reads as a finish; at any other time, and in an endless
- * run, it reads as a retirement.
+ * The sheet that asks before a run ends: what the goods fetch today, and what the run
+ * scores. Every run is endless; ending it is always a retirement.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EndRunSheet(state: RunState, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    val title = stringResource(if (state.isOnLastDay) R.string.finish_run_title else R.string.end_run_title)
-    val confirm = stringResource(if (state.isOnLastDay) R.string.finish_the_run else R.string.end_the_run)
-
     Sheet(
         onDismiss = onDismiss,
         testTag = TestTags.END_RUN_SHEET,
@@ -36,7 +32,7 @@ fun EndRunSheet(state: RunState, onConfirm: () -> Unit, onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(UiDimens.SheetLineGap),
             ) {
                 BasicText(
-                    title,
+                    stringResource(R.string.end_run_title),
                     style = UiType.SheetTitle,
                     modifier = Modifier.align(Alignment.CenterVertically),
                 )
@@ -55,7 +51,7 @@ fun EndRunSheet(state: RunState, onConfirm: () -> Unit, onDismiss: () -> Unit) {
         },
         actions = {
             PrimaryButton(
-                text = confirm,
+                text = stringResource(R.string.end_the_run),
                 enabled = true,
                 onClick = onConfirm,
                 modifier = Modifier.testTag(TestTags.CONFIRM_END_RUN),

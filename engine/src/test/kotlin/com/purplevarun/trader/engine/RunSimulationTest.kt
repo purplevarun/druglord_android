@@ -21,6 +21,7 @@ class RunSimulationTest {
         var stored = 0
         var retrieved = 0
         var soldStored = 0
+        var collectorsPaid = 0
 
         repeat(RUNS) {
             var state = RunState.newRun(seed = random.nextLong())
@@ -40,6 +41,7 @@ class RunSimulationTest {
                         is Action.Store -> stored++
                         is Action.Retrieve -> retrieved++
                         is Action.SellStored -> soldStored++
+                        Action.PayCollector -> collectorsPaid++
                     }
                     state = outcome.state
                 }
@@ -47,7 +49,7 @@ class RunSimulationTest {
                 assertTrue("debt went negative after $action", state.debtRupees >= 0)
                 assertTrue("savings went negative after $action", state.bankRupees >= 0)
                 assertTrue("luggage overflowed after $action", state.luggageUsed <= state.luggageCapacity)
-                assertTrue("day left the run after $action", state.day in 1..state.runLengthDays)
+                assertTrue("day went backwards after $action", state.day >= 1)
                 assertTrue("an empty good was listed after $action", state.holdings.values.all { it > 0 })
                 assertTrue(
                     "an empty godown was listed after $action",
@@ -69,9 +71,10 @@ class RunSimulationTest {
         assertTrue("random play should withdraw", withdrawals > 0)
         assertTrue("random play should upgrade luggage", upgrades > 0)
         assertTrue("random play should use the godowns", stored > 0 && retrieved > 0 && soldStored > 0)
+        assertTrue("random play should meet the collector", collectorsPaid > 0)
     }
 
-    private fun randomAction(random: Random): Action = when (random.nextInt(11)) {
+    private fun randomAction(random: Random): Action = when (random.nextInt(12)) {
         0 -> Action.Buy(GoodId.entries.random(random), random.nextInt(-2, 40))
         1 -> Action.Sell(GoodId.entries.random(random), random.nextInt(-2, 40))
         2 -> Action.Borrow(random.nextLong(-1_000, 60_000))
@@ -82,6 +85,7 @@ class RunSimulationTest {
         7 -> Action.Store(GoodId.entries.random(random), random.nextInt(-2, 40))
         8 -> Action.Retrieve(GoodId.entries.random(random), random.nextInt(-2, 40))
         9 -> Action.SellStored(GoodId.entries.random(random), random.nextInt(-2, 40))
+        10 -> Action.PayCollector
         else -> Action.Travel(CityId.entries.random(random))
     }
 

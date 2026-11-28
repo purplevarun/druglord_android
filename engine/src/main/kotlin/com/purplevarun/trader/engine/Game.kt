@@ -18,6 +18,8 @@ sealed interface Action {
     data class Store(val good: GoodId, val quantity: Int) : Action
     data class Retrieve(val good: GoodId, val quantity: Int) : Action
     data class SellStored(val good: GoodId, val quantity: Int) : Action
+    /** Pay the collector the whole debt, cash first then the bank. */
+    data object PayCollector : Action
 }
 
 enum class Rejection {
@@ -26,8 +28,9 @@ enum class Rejection {
     NOT_ENOUGH_LUGGAGE_SPACE,
     NOT_ENOUGH_HELD,
     ALREADY_THERE,
-    NOT_ENOUGH_DAYS,
     NOT_ENOUGH_SAVED,
+    ALREADY_OWES,
+    NOTHING_OWED,
     REPAYS_MORE_THAN_OWED,
     NOT_AN_UPGRADE,
     NOT_ENOUGH_STORED,
@@ -61,13 +64,14 @@ object Game {
             action.quantity > state.held(action.good) -> Rejection.NOT_ENOUGH_HELD
             else -> null
         }
-        is Action.Travel -> when {
-            action.to == state.city -> Rejection.ALREADY_THERE
-            RailNetwork.travelDays(state.city, action.to) > state.daysLeft -> Rejection.NOT_ENOUGH_DAYS
+        is Action.Travel ->
+            if (action.to == state.city) Rejection.ALREADY_THERE else null
+        is Action.Borrow -> when {
+            action.amountRupees <= 0 -> Rejection.NOT_A_POSITIVE_QUANTITY
+            // The sahukar lends once: while you owe anything there is no more.
+            state.debtRupees > 0 -> Rejection.ALREADY_OWES
             else -> null
         }
-        is Action.Borrow ->
-            if (action.amountRupees <= 0) Rejection.NOT_A_POSITIVE_QUANTITY else null
         is Action.Repay -> when {
             action.amountRupees <= 0 -> Rejection.NOT_A_POSITIVE_QUANTITY
             action.amountRupees > state.debtRupees -> Rejection.REPAYS_MORE_THAN_OWED
@@ -106,6 +110,11 @@ object Game {
             action.quantity > state.stored(state.city, action.good) -> Rejection.NOT_ENOUGH_STORED
             else -> null
         }
+        Action.PayCollector -> when {
+            state.debtRupees == 0L -> Rejection.NOTHING_OWED
+            state.cashRupees + state.bankRupees < state.debtRupees -> Rejection.NOT_ENOUGH_CASH
+            else -> null
+        }
     }
 
     fun apply(state: RunState, action: Action): Outcome {
@@ -136,7 +145,28 @@ object Game {
 
     // --- The moves, no dice ---
 
-    private fun applyMove(state: RunState, action: Action): RunState = when (action) {
+    /**
+     * Every move takes your day: food and lodging at the city you end it in. What cash
+     * cannot cover lands on the sahukar debt — and its interest — like unpaid rent.
+     */
+    private fun chargingLiving(state: RunState, days: Int): RunState {
+        val cost = state.livingCostPerDay * days
+        if (cost <= 0) return state
+        val paid = minOf(cost, state.cashRupees)
+        return state.copy(
+            cashRupees = state.cashRupees - paid,
+            debtRupees = state.debtRupees + (cost - paid),
+        )
+    }
+
+    private fun applyMove(state: RunState, action: Action): RunState {
+        val moved = performMove(state, action)
+        // A trip lives at the destination's rate for each rail day; any other move
+        // takes one day of living where you are.
+        return if (action is Action.Travel) moved else chargingLiving(moved, 1)
+    }
+
+    private fun performMove(state: RunState, action: Action): RunState = when (action) {
         is Action.Buy -> {
             // A heavy order moves the price first, then pays the moved price: buying a
             // lot never leaves you richer for free, and selling a lot eats its own dump.
@@ -157,8 +187,9 @@ object Game {
         is Action.Travel -> {
             val days = RailNetwork.travelDays(state.city, action.to)
             // Every day on the rails the debt grows heavier, the savings a little richer,
-            // the godowns bill their rent, and old news and saturation fade a step further.
-            chargingRent(
+            // the godowns bill their rent, the destination bills your keep, and old news
+            // and saturation fade a step further.
+            val moved = chargingRent(
                 state.copy(
                     city = action.to,
                     day = state.day + days,
@@ -170,15 +201,23 @@ object Game {
                 ),
                 days,
             )
+            chargingLiving(moved, days)
         }
         is Action.Borrow -> state.copy(
+            // The loan starts the collector's clock: ten days to turn it into the money back.
             cashRupees = state.cashRupees + action.amountRupees,
             debtRupees = state.debtRupees + action.amountRupees,
+            debtDueDay = state.day + GameConstants.COLLECTOR_AFTER_DAYS,
         )
-        is Action.Repay -> state.copy(
-            cashRupees = state.cashRupees - action.amountRupees,
-            debtRupees = state.debtRupees - action.amountRupees,
-        )
+        is Action.Repay -> {
+            val debtLeft = state.debtRupees - action.amountRupees
+            // Clearing the debt calls the collector off entirely.
+            state.copy(
+                cashRupees = state.cashRupees - action.amountRupees,
+                debtRupees = debtLeft,
+                debtDueDay = if (debtLeft == 0L) 0 else state.debtDueDay,
+            )
+        }
         is Action.Deposit -> state.copy(
             cashRupees = state.cashRupees - action.amountRupees,
             bankRupees = state.bankRupees + action.amountRupees,
@@ -224,6 +263,17 @@ object Game {
             moved.copy(
                 cashRupees = moved.cashRupees + moved.priceOf(action.good) * action.quantity,
                 godowns = if (godown.isEmpty()) moved.godowns - state.city else moved.godowns + (state.city to godown),
+            )
+        }
+        Action.PayCollector -> {
+            // Cash first, then the bank — the collector takes the whole debt either way.
+            val fromCash = minOf(state.cashRupees, state.debtRupees)
+            val fromBank = state.debtRupees - fromCash
+            state.copy(
+                cashRupees = state.cashRupees - fromCash,
+                bankRupees = state.bankRupees - fromBank,
+                debtRupees = 0,
+                debtDueDay = 0,
             )
         }
     }
@@ -296,8 +346,8 @@ object Game {
         return GameEvent.Checkpost(bribeRupees = 0, seizedGood = good, seizedUnits = units)
     }
 
-    private fun bandh(state: RunState): GameEvent? =
-        if (state.day < state.runLengthDays) GameEvent.Bandh(GameConstants.BANDH_EXTRA_DAYS) else null
+    private fun bandh(state: RunState): GameEvent =
+        GameEvent.Bandh(GameConstants.BANDH_EXTRA_DAYS)
 
     private fun priceSwing(state: RunState, random: Random): GameEvent {
         val headline = EventHeadline.entries.random(random)
@@ -323,10 +373,8 @@ object Game {
         }
         is GameEvent.Bandh ->
             // The extra day costs what a day costs: a day, a day's interest on both sides,
-            // and a day's rent on whatever the godowns hold.
-            if (state.day >= state.runLengthDays) {
-                state
-            } else {
+            // a day's rent on whatever the godowns hold, and a day's keep where you're stuck.
+            chargingLiving(
                 chargingRent(
                     state.copy(
                         day = state.day + event.extraDays,
@@ -334,8 +382,9 @@ object Game {
                         bankRupees = state.bankRupees.withInterest(GameConstants.BANK_DAILY_INTEREST, event.extraDays),
                     ),
                     event.extraDays,
-                )
-            }
+                ),
+                event.extraDays,
+            )
         is GameEvent.PriceSwing -> saturating(state, event.city, event.good, event.basisPoints)
     }
 

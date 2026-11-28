@@ -13,10 +13,9 @@ class GameTest {
     private val start = RunState.newRun(seed = 42)
 
     @Test
-    fun `a new run starts in Mumbai on day 1 of 60 with 10,000 cash, 5,000 debt and empty luggage`() {
+    fun `a new run starts in Mumbai on day 1 with 10,000 cash, 5,000 debt and empty luggage`() {
         assertEquals(CityId.MUMBAI, start.city)
         assertEquals(1, start.day)
-        assertEquals(60, start.runLengthDays)
         assertEquals(10_000L, start.cashRupees)
         assertEquals(5_000L, start.debtRupees)
         assertEquals(0, start.luggageUsed)
@@ -26,8 +25,9 @@ class GameTest {
     @Test
     fun `buying takes the price from cash and puts the goods in the luggage`() {
         val after = done(Game.applyQuietly(start, Action.Buy(ONIONS, 3)))
-        // The order nudged the price up a touch; the goods were charged at the moved price.
-        assertEquals(10_000L - 3 * after.priceOf(ONIONS), after.cashRupees)
+        // The order nudged the price up a touch; the goods were charged at the moved price,
+        // and the move itself cost a day's living in Mumbai.
+        assertEquals(10_000L - 3 * after.priceOf(ONIONS) - after.livingCostPerDay, after.cashRupees)
         assertEquals(3, after.held(ONIONS))
         assertEquals(3, after.luggageUsed)
     }
@@ -36,18 +36,19 @@ class GameTest {
     fun `selling back what was just bought loses a little to the market`() {
         val bought = done(Game.applyQuietly(start, Action.Buy(COTTON, 2)))
         val sold = done(Game.applyQuietly(bought, Action.Sell(COTTON, 2)))
-        // The buy pushed the price up and the sell pulled it back: the spread is the market's cut.
+        // The buy pushed the price up and the sell pulled it back: the spread is the market's
+        // cut, and two moves cost two days of living on top.
         assertTrue(sold.cashRupees < 10_000)
-        assertTrue(sold.cashRupees >= 10_000 - bought.priceOf(COTTON))
+        assertTrue(sold.cashRupees >= 10_000 - bought.priceOf(COTTON) - 2 * start.livingCostPerDay)
         assertEquals(0, sold.held(COTTON))
         assertFalse("nothing left of a good means it is not listed at all", COTTON in sold.holdings)
     }
 
     @Test
-    fun `buying does not change net worth on the same day`() {
+    fun `buying changes net worth only by the day's living it cost`() {
         val loaded = done(Game.applyQuietly(start, Action.Buy(COTTON, 4)))
         assertEquals(5_000L, start.netWorthRupees)
-        assertEquals(5_000L, loaded.netWorthRupees)
+        assertEquals(5_000L - loaded.livingCostPerDay, loaded.netWorthRupees)
     }
 
     @Test
@@ -86,42 +87,19 @@ class GameTest {
     }
 
     @Test
-    fun `travelling moves you and spends the days the trip takes, keeping cash and goods`() {
+    fun `travelling moves you and spends the days the trip takes, keeping goods and billing your keep`() {
         val loaded = done(Game.applyQuietly(start, Action.Buy(ONIONS, 5)))
         val arrived = done(Game.applyQuietly(loaded, Action.Travel(CityId.SRINAGAR)))
         assertEquals(CityId.SRINAGAR, arrived.city)
         assertEquals(3, arrived.day)
-        assertEquals(loaded.cashRupees, arrived.cashRupees)
+        // Two rail days, each lived at Srinagar's rate.
+        assertEquals(loaded.cashRupees - 2 * arrived.livingCostPerDay, arrived.cashRupees)
         assertEquals(5, arrived.held(ONIONS))
-    }
-
-    @Test
-    fun `you cannot take a trip that ends after the last day`() {
-        val lastButOneDay = start.copy(day = 59)
-        assertEquals(60, done(Game.applyQuietly(lastButOneDay, Action.Travel(CityId.DELHI))).day)
-        rejected(Rejection.NOT_ENOUGH_DAYS, Game.applyQuietly(lastButOneDay, Action.Travel(CityId.SRINAGAR)))
     }
 
     @Test
     fun `travelling to where you already are is not a trip`() {
         rejected(Rejection.ALREADY_THERE, Game.applyQuietly(start, Action.Travel(CityId.MUMBAI)))
-    }
-
-    @Test
-    fun `an endless run has no last day`() {
-        val endless = RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS)
-        assertTrue(endless.isEndless)
-        assertFalse(start.isEndless)
-        val farAlong = endless.copy(day = 1_000)
-        assertEquals(1_001, done(Game.applyQuietly(farAlong, Action.Travel(CityId.DELHI))).day)
-    }
-
-    @Test
-    fun `the last day is the day the run ends on, which an endless run never has`() {
-        assertFalse(start.isOnLastDay)
-        assertTrue(start.copy(day = 60).isOnLastDay)
-        val endless = RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS)
-        assertFalse(endless.copy(day = 1_000).isOnLastDay)
     }
 
     private fun done(outcome: Outcome): RunState {

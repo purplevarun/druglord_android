@@ -57,7 +57,7 @@ fun SahukarSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.borrow_amount, formatRupees(step)),
-                        enabled = true,
+                        enabled = Game.check(state, Action.Borrow(step)) == null,
                         onClick = { onAction(Action.Borrow(step)) },
                         modifier = Modifier.testTag(TestTags.borrow(step)),
                     )

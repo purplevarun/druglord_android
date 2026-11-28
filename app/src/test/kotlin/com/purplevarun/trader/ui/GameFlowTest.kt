@@ -51,7 +51,7 @@ class GameFlowTest {
         compose.setContent {
             GameScreen(
                 store = store,
-                newRun = { days -> RunState.newRun(seed = 42, runLengthDays = days) },
+                newRun = { RunState.newRun(seed = 42) },
             )
         }
         return store
@@ -80,7 +80,7 @@ class GameFlowTest {
         settleEvents()
 
         compose.onNodeWithText("quintal · 1 held").assertExists()
-        compose.onNodeWithText("Day 1 · ${formatRupees(10_000 - price)}").assertExists()
+        compose.onNodeWithText("Day 1 · ${formatRupees(10_000 - price - newRun.livingCostPerDay)}").assertExists()
         compose.onNodeWithText("Luggage 1/100").assertExists()
     }
 
@@ -94,8 +94,9 @@ class GameFlowTest {
         compose.onNodeWithContentDescription("Sell one Cotton").performClick()
         settleEvents()
 
-        // The buy nudged the price up and the sell sold at base: a rupee of market impact.
-        compose.onNodeWithText("Day 1 · ₹9,999").assertExists()
+        // The buy nudged the price up and the sell sold at base: a rupee of market impact,
+        // and two moves cost two days of living.
+        compose.onNodeWithText("Day 1 · ${formatRupees(9_999 - 2 * newRun.livingCostPerDay)}").assertExists()
         compose.onNodeWithContentDescription("Sell one Cotton").assertIsNotEnabled()
     }
 
@@ -118,7 +119,7 @@ class GameFlowTest {
         compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
         settleEvents()
 
-        compose.onNodeWithText("Day 2 of 60").assertExists()
+        compose.onNodeWithText("Day 2").assertExists()
         compose.onNodeWithText("Delhi mandi").assertExists()
     }
 
@@ -128,28 +129,7 @@ class GameFlowTest {
         tapCity(CityId.SRINAGAR)
 
         compose.onNodeWithText("3 days by train · via Mumbai, Delhi").assertExists()
-        compose.onNodeWithText("Arrives 4 Jan 2000 · 56 days left after this trip").assertExists()
-    }
-
-    @Test
-    fun `a trip longer than the days left cannot be boarded`() {
-        start(newRun.copy(day = 59, city = CityId.BANGALORE))
-        tapCity(CityId.SRINAGAR)
-
-        compose.onNodeWithText("Not enough days left: the run ends on 29 Feb 2000.").assertExists()
-        compose.onNodeWithTag(TestTags.BOARD_TRAIN).assertIsNotEnabled()
-    }
-
-    @Test
-    fun `an endless run never speaks of days left`() {
-        start(RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS))
-        tapCity(CityId.DELHI)
-
-        compose.onNodeWithText("Arrives 2 Jan 2000").assertExists()
-        compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
-        settleEvents()
-
-        compose.onNodeWithText("Day 2 · endless").assertExists()
+        compose.onNodeWithText("Arrives 4 Jan 2000").assertExists()
     }
 
     @Test
@@ -179,7 +159,7 @@ class GameFlowTest {
         store.saveRun(newRun)
         val restorer = StateRestorationTester(compose)
         restorer.setContent {
-            GameScreen(store = store, newRun = { days -> RunState.newRun(seed = 42, runLengthDays = days) })
+            GameScreen(store = store, newRun = { RunState.newRun(seed = 42) })
         }
         openMarket()
         compose.onNodeWithContentDescription("Buy one Onions").performClick()
@@ -192,38 +172,36 @@ class GameFlowTest {
     }
 
     @Test
-    fun `with no run saved the new-run screen offers the lengths and the best runs`() {
+    fun `with no run saved the new-run screen shows the best runs and a start`() {
         start(run = null)
 
         compose.onNodeWithTag(TestTags.NEW_RUN_SCREEN).assertExists()
-        compose.onNodeWithText("90 days").assertExists()
-        compose.onNodeWithText("Endless").assertExists()
         compose.onNodeWithText("No finished runs yet.").assertExists()
     }
 
     @Test
-    fun `picking a run length and starting begins on day one of it`() {
+    fun `starting a run begins on day one in Mumbai`() {
         start(run = null)
 
-        compose.onNodeWithTag(TestTags.runLength(90)).performClick()
         compose.onNodeWithTag(TestTags.START_RUN).performClick()
 
-        compose.onNodeWithText("Day 1 of 90").assertExists()
+        compose.onNodeWithText("Day 1").assertExists()
         compose.onNodeWithText("Mumbai mandi").assertExists()
     }
 
     @Test
-    fun `on the last day a finish button ends the run on the end screen`() {
-        start(newRun.copy(day = 60))
+    fun `retiring lands on the end screen with the score and the rank`() {
+        start()
 
-        compose.onNodeWithTag(TestTags.FINISH_RUN).performClick()
-        compose.onNodeWithText("Finish the run?").assertExists()
+        compose.onNodeWithTag(TestTags.END_RUN).performClick()
+        compose.onNodeWithText("End the run?").assertExists()
         compose.onNodeWithTag(TestTags.CONFIRM_END_RUN).performClick()
 
         compose.onNodeWithTag(TestTags.END_SCREEN).assertExists()
         compose.onNodeWithText("₹5,000").assertExists()
         compose.onNodeWithText("Thelawala").assertExists()
-        compose.onNodeWithText("RUN OVER · 29 FEB 2000").assertExists()
+        compose.onNodeWithText("You retired.").assertExists()
+        compose.onNodeWithText("RUN OVER · 1 JAN 2000").assertExists()
     }
 
     @Test
@@ -237,14 +215,15 @@ class GameFlowTest {
         compose.onNodeWithText("Keep trading").performClick()
 
         compose.onNodeWithTag(TestTags.END_RUN_SHEET).assertDoesNotExist()
-        compose.onNodeWithText("Day 1 of 60").assertExists()
+        compose.onNodeWithText("Day 1").assertExists()
     }
 
     @Test
     fun `a finished run lands on the best runs list`() {
-        val store = start(newRun.copy(day = 60))
+        // Well ahead of the collector's day so his sheet does not sit over the retire one.
+        val store = start(newRun.copy(day = 60, debtDueDay = 70))
 
-        compose.onNodeWithTag(TestTags.FINISH_RUN).performClick()
+        compose.onNodeWithTag(TestTags.END_RUN).performClick()
         compose.onNodeWithTag(TestTags.CONFIRM_END_RUN).performClick()
         compose.onNodeWithTag(TestTags.NEW_RUN).performClick()
 
@@ -255,25 +234,67 @@ class GameFlowTest {
 
     @Test
     fun `a saved run picks up where it left off`() {
-        start(newRun.copy(day = 12, city = CityId.DELHI, cashRupees = 42_000))
+        start(newRun.copy(day = 12, city = CityId.DELHI, cashRupees = 42_000, debtDueDay = 30))
 
-        compose.onNodeWithText("Day 12 of 60").assertExists()
+        compose.onNodeWithText("Day 12").assertExists()
         compose.onNodeWithText("Delhi mandi").assertExists()
     }
 
     @Test
-    fun `an endless run has no finish button and still retires`() {
-        start(RunState.newRun(seed = 42, runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS))
+    fun `the collector knocks when the ten days run out`() {
+        start(newRun.copy(day = newRun.debtDueDay - 1, cashRupees = 100_000))
 
-        compose.onNodeWithText("Day 1 · endless").assertExists()
-        compose.onNodeWithTag(TestTags.FINISH_RUN).assertDoesNotExist()
+        tapCity(CityId.DELHI)
+        compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+        settleEvents()
 
-        compose.onNodeWithTag(TestTags.END_RUN).performClick()
-        compose.onNodeWithText("End the run?").assertExists()
-        compose.onNodeWithTag(TestTags.CONFIRM_END_RUN).performClick()
+        // The trip put the run past its deadline: he is at the door, and the money is there.
+        compose.onNodeWithTag(TestTags.COLLECTOR_SHEET).assertExists()
+        compose.onNodeWithTag(TestTags.PAY_COLLECTOR).performClick()
+        settleEvents()
+
+        compose.onNodeWithTag(TestTags.COLLECTOR_SHEET).assertDoesNotExist()
+        compose.onNodeWithText("Debt ₹0", substring = true).assertExists()
+    }
+
+    @Test
+    fun `when you cannot pay the collector ends the run`() {
+        start(newRun.copy(day = newRun.debtDueDay - 1, cashRupees = 100))
+
+        tapCity(CityId.DELHI)
+        compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
+        settleEvents()
+
+        compose.onNodeWithTag(TestTags.COLLECTOR_SHEET).assertExists()
+        compose.onNodeWithTag(TestTags.PAY_COLLECTOR).assertIsNotEnabled()
+        compose.onNodeWithTag(TestTags.MEET_FATE).performClick()
 
         compose.onNodeWithTag(TestTags.END_SCREEN).assertExists()
-        compose.onNodeWithText("1 days on the rails").assertExists()
+        compose.onNodeWithText("The collector got you.").assertExists()
+    }
+
+    @Test
+    fun `broke asks for the last loan or the end`() {
+        start(newRun.copy(cashRupees = 0, debtRupees = 0, debtDueDay = 0))
+
+        compose.onNodeWithTag(TestTags.BROKE_SHEET).assertExists()
+        compose.onNodeWithTag(TestTags.BORROW_AGAIN).performClick()
+        settleEvents()
+
+        compose.onNodeWithTag(TestTags.BROKE_SHEET).assertDoesNotExist()
+        compose.onNodeWithText("Debt ₹5,000", substring = true).assertExists()
+    }
+
+    @Test
+    fun `broke while owing is just the end`() {
+        start(newRun.copy(cashRupees = 0, bankRupees = 0))
+
+        compose.onNodeWithTag(TestTags.BROKE_SHEET).assertExists()
+        compose.onNodeWithTag(TestTags.BORROW_AGAIN).assertIsNotEnabled()
+        compose.onNodeWithTag(TestTags.MEET_FATE).performClick()
+
+        compose.onNodeWithTag(TestTags.END_SCREEN).assertExists()
+        compose.onNodeWithText("You died broke.").assertExists()
     }
 
     @Test
@@ -296,15 +317,22 @@ class GameFlowTest {
     }
 
     @Test
-    fun `borrowing fills your pocket and your debt`() {
+    fun `the sahukar lends once, and a cleared debt opens him again`() {
         start()
         compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
+
+        // Owing already, there is no borrowing.
+        compose.onNodeWithTag(TestTags.borrow(1_000)).assertIsNotEnabled()
+
+        compose.onNodeWithTag(TestTags.REPAY_ALL).performClick()
+        settleEvents()
+        compose.onNodeWithText("You owe nothing.").assertExists()
 
         compose.onNodeWithTag(TestTags.borrow(1_000)).performClick()
         settleEvents()
 
-        compose.onNodeWithText("You owe ₹6,000").assertExists()
-        compose.onNodeWithText("Cash ₹11,000 · Debt ₹6,000").assertExists()
+        compose.onNodeWithText("You owe ₹1,000").assertExists()
+        compose.onNodeWithTag(TestTags.borrow(1_000)).assertIsNotEnabled()
     }
 
     @Test
@@ -319,7 +347,7 @@ class GameFlowTest {
         settleEvents()
 
         compose.onNodeWithText("You owe nothing.").assertExists()
-        compose.onNodeWithText("Cash ₹5,000").assertExists()
+        compose.onNodeWithText("Cash ₹4,880").assertExists()
     }
 
     @Test
@@ -332,18 +360,18 @@ class GameFlowTest {
         settleEvents()
 
         compose.onNodeWithText("In the bank ₹1,000").assertExists()
-        compose.onNodeWithText("Cash ₹9,000").assertExists()
+        compose.onNodeWithText("Cash ₹8,880").assertExists()
 
         compose.onNodeWithTag(TestTags.WITHDRAW_ALL).performClick()
         settleEvents()
 
         compose.onNodeWithText("Nothing in the bank.").assertExists()
-        compose.onNodeWithText("Cash ₹10,000").assertExists()
+        compose.onNodeWithText("Cash ₹9,760").assertExists()
     }
 
     @Test
     fun `the train grows your debt and your savings`() {
-        start()
+        start(newRun.copy(debtRupees = 0, debtDueDay = 0))
 
         compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
         compose.onNodeWithTag(TestTags.borrow(10_000)).performClick()
@@ -359,8 +387,8 @@ class GameFlowTest {
         compose.onNodeWithTag(TestTags.BOARD_TRAIN).performClick()
         settleEvents()
 
-        // One day on the rails: the sahukar's 8% and the bank's 1%.
-        compose.onNodeWithText("Cash ₹10,000 · Debt ₹16,200").assertExists()
+        // One day on the rails: the sahukar's 8%, the bank's 1%, and a day's keep in Delhi.
+        compose.onNodeWithText("Cash ₹9,660 · Debt ₹10,800").assertExists()
         compose.onNodeWithTag(TestTags.PLACE_BANK).performClick()
         compose.onNodeWithText("In the bank ₹10,100").assertExists()
     }
@@ -379,7 +407,7 @@ class GameFlowTest {
         settleEvents()
 
         compose.onNodeWithText("Trunk · 0 of 250 filled").assertExists()
-        compose.onNodeWithText("Cash ₹6,000 · Debt ₹5,000").assertExists()
+        compose.onNodeWithText("Cash ₹5,880 · Debt ₹5,000").assertExists()
 
         compose.onNodeWithText("Close").performClick()
         openMarket()
@@ -453,8 +481,8 @@ class GameFlowTest {
         settleEvents()
 
         // One day on the rails at fifty a day for the goods sitting in Mumbai,
-        // the sahukar's 8% on the day besides.
-        compose.onNodeWithText("Cash ₹9,950 · Debt ₹5,400").assertExists()
+        // a day's keep in Delhi, the sahukar's 8% on the day besides.
+        compose.onNodeWithText("Cash ₹9,850 · Debt ₹5,400").assertExists()
         compose.onNodeWithTag(TestTags.PLACE_GODOWN).performClick()
         compose.onNodeWithText("Nothing stored in this city.").assertExists()
     }

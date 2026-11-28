@@ -6,12 +6,13 @@ import kotlin.math.abs
 data class RunState(
     val seed: Long,
     val day: Int,
-    val runLengthDays: Int,
     val city: CityId,
     val cashRupees: Long,
     val debtRupees: Long,
     val bankRupees: Long,
     val transport: TransportId,
+    /** The day the collector comes for the debt, or 0 while nothing is owed. */
+    val debtDueDay: Int,
     /** How many event rolls this run has made; the next roll's luck comes from seed + rngRolls. */
     val rngRolls: Long,
     /** Local price wobbles from news and saturation, still in effect. */
@@ -21,14 +22,6 @@ data class RunState(
     /** Only goods actually carried are listed, each with a quantity of at least one. */
     val holdings: Map<GoodId, Int>,
 ) {
-    /** Days still to come after today. Always a long way off in an endless run. */
-    val daysLeft: Int get() = runLengthDays - day
-
-    val isEndless: Boolean get() = runLengthDays == GameConstants.ENDLESS_RUN_LENGTH_DAYS
-
-    /** True on the last day of a finite run: trading still works, and the run can be finished. */
-    val isOnLastDay: Boolean get() = !isEndless && daysLeft <= 0
-
     val luggageCapacity: Int get() = GameConstants.transport(transport).capacity
 
     val luggageUsed: Int get() = holdings.values.sum()
@@ -44,6 +37,16 @@ data class RunState(
 
     /** Today's rent across all godowns in use. */
     val godownRentPerDay: Long get() = GameConstants.GODOWN_DAILY_RENT_RUPEES * godownsInUse
+
+    /** What a day of living costs where you are now. */
+    val livingCostPerDay: Long get() = GameConstants.LIVING_COST_RUPEES.getValue(city)
+
+    /** The collector has found you: the deadline passed while debt stands. */
+    val collectorDue: Boolean get() = debtRupees > 0 && debtDueDay > 0 && day >= debtDueDay
+
+    /** Nothing left at all: no money anywhere and nothing to sell. */
+    val isBroke: Boolean
+        get() = cashRupees <= 0 && bankRupees <= 0 && holdings.isEmpty() && godowns.isEmpty()
 
     /** The total shift on [good] in this city right now, capped so a price stays sane. */
     fun shiftFor(good: GoodId): Int = shiftForIn(city, good)
@@ -85,15 +88,16 @@ data class RunState(
     }
 
     companion object {
-        fun newRun(seed: Long, runLengthDays: Int = GameConstants.DEFAULT_RUN_LENGTH_DAYS) = RunState(
+        fun newRun(seed: Long) = RunState(
             seed = seed,
             day = 1,
-            runLengthDays = runLengthDays,
             city = GameConstants.STARTING_CITY,
             cashRupees = GameConstants.STARTING_CASH_RUPEES,
             debtRupees = GameConstants.STARTING_DEBT_RUPEES,
             bankRupees = 0,
             transport = GameConstants.STARTING_TRANSPORT,
+            // The starting debt is the collector's first deadline: due on day 1 + 10.
+            debtDueDay = 1 + GameConstants.COLLECTOR_AFTER_DAYS,
             rngRolls = 0,
             priceShifts = emptyList(),
             godowns = emptyMap(),

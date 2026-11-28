@@ -52,13 +52,6 @@ class EventsTest {
     }
 
     @Test
-    fun `a bandh cannot push the run past its last day`() {
-        val lastDay = start.copy(day = start.runLengthDays)
-        val after = Game.applyEvent(lastDay, Bandh(extraDays = 1))
-        assertEquals(start.runLengthDays, after.day)
-    }
-
-    @Test
     fun `a price swing moves the price in its city and nowhere else`() {
         val swung = Game.applyEvent(
             start,

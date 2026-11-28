@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import com.purplevarun.trader.BestRun
 import com.purplevarun.trader.engine.CityId
 import com.purplevarun.trader.engine.EventHeadline
-import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GameEvent
 import com.purplevarun.trader.engine.GoodId
 import com.purplevarun.trader.engine.PriceShift
@@ -51,8 +50,6 @@ class ScreenLayoutTest(private val case: Case) {
 
     enum class Screen(val mainActionTag: String, val showsMap: Boolean) {
         HOME(TestTags.MARKET_DRAWER, showsMap = true),
-        HOME_LAST_DAY(TestTags.FINISH_RUN, showsMap = true),
-        HOME_ENDLESS(TestTags.MARKET_DRAWER, showsMap = true),
         MARKET(TestTags.MARKET_DONE, showsMap = false),
         TRAVEL(TestTags.BOARD_TRAIN, showsMap = true),
         END_RUN(TestTags.CONFIRM_END_RUN, showsMap = true),
@@ -61,17 +58,14 @@ class ScreenLayoutTest(private val case: Case) {
         LUGGAGE(TestTags.buyTransport(TransportId.TRUNK), showsMap = true),
         GODOWN(TestTags.GODOWN_CLOSE, showsMap = true),
         EVENT(TestTags.GOT_IT_EVENT, showsMap = true),
+        COLLECTOR(TestTags.PAY_COLLECTOR, showsMap = true),
+        BROKE(TestTags.BORROW_AGAIN, showsMap = true),
         NEW_RUN(TestTags.START_RUN, showsMap = false),
         ENDED(TestTags.NEW_RUN, showsMap = false),
         ;
 
         fun phase(run: RunState): Phase = when (this) {
             HOME -> Phase.Playing(run, Overlay.None)
-            HOME_LAST_DAY -> Phase.Playing(run.copy(day = run.runLengthDays), Overlay.None)
-            HOME_ENDLESS -> Phase.Playing(
-                run.copy(runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS),
-                Overlay.None,
-            )
             MARKET -> Phase.Playing(run, Overlay.Market)
             TRAVEL -> Phase.Playing(run, Overlay.Travel(CityId.SRINAGAR))
             END_RUN -> Phase.Playing(run, Overlay.EndRun)
@@ -87,8 +81,18 @@ class ScreenLayoutTest(private val case: Case) {
                     GameEvent.PriceSwing(CityId.BANGALORE, GoodId.ONIONS, 4_000, EventHeadline.MONSOON),
                 ),
             )
+            COLLECTOR -> Phase.Playing(run.copy(day = run.debtDueDay), Overlay.None)
+            BROKE -> Phase.Playing(
+                run.copy(
+                    cashRupees = 0,
+                    bankRupees = 0,
+                    holdings = emptyMap(),
+                    godowns = emptyMap(),
+                ),
+                Overlay.None,
+            )
             NEW_RUN -> Phase.NewRun
-            ENDED -> Phase.Ended(run)
+            ENDED -> Phase.Ended(run, Ending.RETIRED)
         }
     }
 
@@ -123,10 +127,10 @@ class ScreenLayoutTest(private val case: Case) {
         private val CROWDED_RUN = RunState(
             seed = 7,
             day = 29,
-            runLengthDays = 90,
             city = CityId.BANGALORE,
             cashRupees = 987_654_321,
             debtRupees = 12_345_678,
+            debtDueDay = 40,
             bankRupees = 8_765_432,
             transport = TransportId.JHOLA,
             rngRolls = 40,
@@ -138,13 +142,13 @@ class ScreenLayoutTest(private val case: Case) {
             holdings = mapOf(GoodId.SILK_SAREES to 40, GoodId.GOLD to 30, GoodId.ONIONS to 29),
         )
 
-        /** The fullest the best-runs list can be: five entries, big amounts, an endless run. */
+        /** The fullest the best-runs list can be: five entries, big amounts, long runs. */
         private val CROWDED_BEST_RUNS = listOf(
-            BestRun(987_654_321, 90, 90, RankId.CROREPATI),
-            BestRun(123_456_789, 60, 60, RankId.CROREPATI),
-            BestRun(98_765_432, GameConstants.ENDLESS_RUN_LENGTH_DAYS, 432, RankId.SETH),
-            BestRun(1_234_567, 30, 30, RankId.SETH),
-            BestRun(5_432, 60, 60, RankId.THELAWALA),
+            BestRun(987_654_321, 90, RankId.CROREPATI),
+            BestRun(123_456_789, 60, RankId.CROREPATI),
+            BestRun(98_765_432, 432, RankId.SETH),
+            BestRun(1_234_567, 30, RankId.SETH),
+            BestRun(5_432, 60, RankId.THELAWALA),
         )
 
         @JvmStatic

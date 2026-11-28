@@ -73,7 +73,6 @@ fun HomeScreen(
                     Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                         Header(state, onEndRun)
                     }
-                    FinishBar(state, onEndRun)
                     MarketDrawer(state, onOpenMarket, onOpenPlace, placesMaxHeight)
                 }
                 RailMap(state.city, onCityTap, Modifier.weight(1f).fillMaxHeight(), route)
@@ -89,7 +88,6 @@ fun HomeScreen(
                         route,
                     )
                 }
-                FinishBar(state, onEndRun)
                 MarketDrawer(state, onOpenMarket, onOpenPlace, placesMaxHeight)
             }
         }
@@ -122,10 +120,6 @@ private fun Header(state: RunState, onEndRun: () -> Unit) {
                 stepSize = UiType.NetWorthSizeStep,
             ),
         )
-        if (!state.isEndless) {
-            Spacer(Modifier.height(UiDimens.HeaderProgressGapTop))
-            RunProgress(fraction = state.day.toFloat() / state.runLengthDays)
-        }
         Spacer(Modifier.height(UiDimens.HeaderProgressGapBottom))
         // Sits on one line when there is room and wraps when there is not.
         FlowRow(
@@ -133,15 +127,16 @@ private fun Header(state: RunState, onEndRun: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalArrangement = Arrangement.spacedBy(UiDimens.HeaderLineGap),
         ) {
-            BasicText(
-                text = if (state.isEndless) {
-                    stringResource(R.string.day_endless, state.day)
-                } else {
-                    stringResource(R.string.day_of_run, state.day, state.runLengthDays)
-                },
-                style = UiType.Body,
-                modifier = Modifier.align(Alignment.CenterVertically),
-            )
+            Column(Modifier.align(Alignment.CenterVertically)) {
+                BasicText(
+                    text = stringResource(R.string.day_plain, state.day),
+                    style = UiType.Body,
+                )
+                BasicText(
+                    text = stringResource(R.string.lives_on, formatRupees(state.livingCostPerDay)),
+                    style = UiType.Small,
+                )
+            }
             BasicText(
                 text = stringResource(
                     R.string.cash_and_debt,
@@ -157,46 +152,6 @@ private fun Header(state: RunState, onEndRun: () -> Unit) {
                 modifier = Modifier.testTag(TestTags.END_RUN),
             )
         }
-    }
-}
-
-/**
- * On the last day of a finite run, the way out: a wide button pinned above the market drawer
- * so it is always on screen. Endless runs never get one; they end from the header instead.
- */
-@Composable
-private fun FinishBar(state: RunState, onEndRun: () -> Unit) {
-    if (!state.isOnLastDay) return
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = UiDimens.ScreenPadding)
-            .padding(bottom = UiDimens.FinishBarPaddingBottom),
-    ) {
-        PrimaryButton(
-            text = stringResource(R.string.finish_the_run),
-            enabled = true,
-            onClick = onEndRun,
-            modifier = Modifier.testTag(TestTags.FINISH_RUN),
-        )
-    }
-}
-
-@Composable
-private fun RunProgress(fraction: Float) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(UiDimens.ProgressHeight)
-            .clip(CircleShape)
-            .background(UiColors.Line),
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .fillMaxHeight()
-                .background(UiColors.Accent),
-        )
     }
 }
 
@@ -266,7 +221,15 @@ private fun MarketDrawer(
             PlaceChip(
                 name = stringResource(R.string.place_sahukar),
                 status = if (state.debtRupees > 0) {
-                    stringResource(R.string.owe_amount, formatRupees(state.debtRupees))
+                    if (state.debtDueDay > 0) {
+                        stringResource(
+                            R.string.owe_amount_due,
+                            formatRupees(state.debtRupees),
+                            state.debtDueDay,
+                        )
+                    } else {
+                        stringResource(R.string.owe_amount, formatRupees(state.debtRupees))
+                    }
                 } else {
                     stringResource(R.string.no_debt)
                 },

@@ -6,8 +6,9 @@
     <!-- Home -->
     <string name="net_worth_label">Net worth · %1$s</string>
     <string name="date_format">%1$d %2$s %3$d</string>
-    <string name="day_of_run">Day %1$d of %2$d</string>
+    <string name="day_plain">Day %1$d</string>
     <string name="cash_and_debt">Cash %1$s · Debt %2$s</string>
+    <string name="lives_on">%1$s a day to live here</string>
     <string name="market_title">%1$s mandi</string>
     <string name="market_hint">%1$d goods · tap here to trade · tap a city to travel</string>
     <string name="open_market">Open the market</string>
@@ -30,6 +31,7 @@
     <string name="place_bank">Bank</string>
     <string name="place_luggage">Luggage</string>
     <string name="owe_amount">owe %1$s</string>
+    <string name="owe_amount_due">owe %1$s · collector on day %2$d</string>
     <string name="no_debt">no debt</string>
     <string name="saved_amount">saved %1$s</string>
     <string name="nothing_saved">nothing saved</string>
@@ -102,45 +104,48 @@
     <string name="trip_direct">%1$s · direct</string>
     <string name="trip_via">%1$s · via %2$s</string>
     <string name="list_separator">", "</string>
-    <plurals name="days_left_after_trip">
-        <item quantity="one">%1$d day left after this trip</item>
-        <item quantity="other">%1$d days left after this trip</item>
-    </plurals>
-    <string name="arrival">Arrives %1$s · %2$s</string>
-    <string name="too_far">Not enough days left: the run ends on %1$s.</string>
+    <string name="arrival">Arrives %1$s</string>
     <string name="board_train">Board the train</string>
     <string name="cancel">Cancel</string>
     <string name="close">Close</string>
 
     <!-- Ending a run -->
-    <string name="day_endless">Day %1$d · endless</string>
     <string name="end_the_run">End the run</string>
-    <string name="finish_the_run">Finish the run</string>
     <string name="end_run_title">End the run?</string>
-    <string name="finish_run_title">Finish the run?</string>
     <string name="end_run_explain">Your goods sell at today\'s prices.</string>
     <string name="end_run_net_worth">Net worth %1$s · %2$s</string>
     <string name="keep_trading">Keep trading</string>
-    <string name="arrival_endless">Arrives %1$s</string>
 
     <!-- New run -->
-    <string name="new_run_subtitle">How many days on the rails?</string>
-    <string name="run_length_days">%1$d days</string>
-    <string name="run_length_endless">Endless</string>
-    <string name="run_length_endless_hint">no last day</string>
+    <string name="new_run_subtitle">No last day — just you, the rails and the sahukar.</string>
     <string name="start_the_run">Start the run</string>
     <string name="best_runs_title">Best runs</string>
     <string name="best_run_line">%1$s · %2$s · %3$s</string>
-    <string name="best_run_endless_day">endless · day %1$d</string>
     <plurals name="best_run_days">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
     <string name="no_best_runs">No finished runs yet.</string>
 
+    <!-- The collector and the end of options -->
+    <string name="collector_title">The collector</string>
+    <string name="collector_body">The ten days ran out — he wants the whole %1$s now, cash first then your savings. Pay up or it\'s over.</string>
+    <string name="collector_pay">Pay %1$s</string>
+    <string name="meet_fate">It\'s over</string>
+    <string name="broke_title">Broke</string>
+    <string name="broke_body">Not a rupee, not a good — nothing left to trade with.</string>
+    <string name="broke_deadbeat">…and the sahukar won\'t lend while you still owe.</string>
+    <string name="broke_borrow">Borrow %1$s</string>
+
     <!-- Run over -->
     <string name="run_over">Run over · %1$s</string>
-    <string name="end_days_endless">%1$d days on the rails</string>
+    <string name="ending_retired">You retired.</string>
+    <string name="ending_broke">You died broke.</string>
+    <string name="ending_collected">The collector got you.</string>
+    <plurals name="days_on_rails">
+        <item quantity="one">%1$d day on the rails</item>
+        <item quantity="other">%1$d days on the rails</item>
+    </plurals>
     <string name="new_run">New run</string>
 
     <!-- Ranks: placeholder names until the naming pass -->

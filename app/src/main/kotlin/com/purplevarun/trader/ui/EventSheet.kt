@@ -10,7 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.purplevarun.trader.R
+import com.purplevarun.trader.engine.Action
+import com.purplevarun.trader.engine.Game
+import com.purplevarun.trader.engine.GameConstants
 import com.purplevarun.trader.engine.GameEvent
+import com.purplevarun.trader.engine.RunState
 import kotlin.math.abs
 
 /**
@@ -81,4 +85,76 @@ private fun eventBody(event: GameEvent): String = when (event) {
             stringResource(R.string.event_price_down_body, good, city, percent)
         }
     }
+}
+
+/**
+ * The collector has found you. Pay the whole debt — cash first, then the bank — or the run
+ * ends here. The sheet cannot be dismissed away: he waits for nothing.
+ */
+@Composable
+fun CollectorSheet(state: RunState, onAction: (Action) -> Unit, onDeath: () -> Unit) {
+    val canPay = Game.check(state, Action.PayCollector) == null
+    Sheet(
+        onDismiss = {},
+        testTag = TestTags.COLLECTOR_SHEET,
+        content = {
+            TitleLine(title = stringResource(R.string.collector_title), status = "")
+            Spacer(Modifier.height(UiDimens.SheetLineGap))
+            BasicText(
+                stringResource(R.string.collector_body, formatRupees(state.debtRupees)),
+                style = UiType.Body,
+            )
+        },
+        actions = {
+            PrimaryButton(
+                text = stringResource(R.string.collector_pay, formatRupees(state.debtRupees)),
+                enabled = canPay,
+                onClick = { onAction(Action.PayCollector) },
+                modifier = Modifier.testTag(TestTags.PAY_COLLECTOR),
+            )
+            TextButton(
+                text = stringResource(R.string.meet_fate),
+                onClick = onDeath,
+                modifier = Modifier.fillMaxWidth().testTag(TestTags.MEET_FATE),
+            )
+        },
+    )
+}
+
+/**
+ * Nothing left at all — not a rupee, not a good. The sahukar offers one last loan if you
+ * owe nothing; otherwise this is simply the end. The sheet cannot be dismissed away.
+ */
+@Composable
+fun BrokeSheet(state: RunState, onAction: (Action) -> Unit, onDeath: () -> Unit) {
+    val canBorrow = state.debtRupees == 0L
+    Sheet(
+        onDismiss = {},
+        testTag = TestTags.BROKE_SHEET,
+        content = {
+            TitleLine(title = stringResource(R.string.broke_title), status = "")
+            Spacer(Modifier.height(UiDimens.SheetLineGap))
+            BasicText(
+                text = if (canBorrow) {
+                    stringResource(R.string.broke_body)
+                } else {
+                    stringResource(R.string.broke_body) + " " + stringResource(R.string.broke_deadbeat)
+                },
+                style = UiType.Body,
+            )
+        },
+        actions = {
+            PrimaryButton(
+                text = stringResource(R.string.broke_borrow, formatRupees(GameConstants.SURVIVAL_LOAN_RUPEES)),
+                enabled = canBorrow,
+                onClick = { onAction(Action.Borrow(GameConstants.SURVIVAL_LOAN_RUPEES)) },
+                modifier = Modifier.testTag(TestTags.BORROW_AGAIN),
+            )
+            TextButton(
+                text = stringResource(R.string.meet_fate),
+                onClick = onDeath,
+                modifier = Modifier.fillMaxWidth().testTag(TestTags.MEET_FATE),
+            )
+        },
+    )
 }

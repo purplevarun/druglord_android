@@ -86,8 +86,8 @@ class GodownsTest {
             godowns = mapOf(MUMBAI to mapOf(ONIONS to 10), DELHI to mapOf(GOLD to 1)),
         )
         val after = done(Game.applyQuietly(parked, Action.Travel(DELHI)))
-        // Two godowns at fifty a day each, one day on the rails.
-        assertEquals(10_000 - 100, after.cashRupees)
+        // Two godowns at fifty a day each, plus a day's living at Delhi's rate.
+        assertEquals(10_000 - 100 - after.livingCostPerDay, after.cashRupees)
     }
 
     @Test
@@ -98,13 +98,14 @@ class GodownsTest {
         )
         val after = done(Game.applyQuietly(parked, Action.Travel(DELHI)))
         assertEquals(0, after.cashRupees)
-        assertEquals(5_400 + 80, after.debtRupees) // a day's 8% on 5,000, plus the unpaid 80
+        // A day's 8% on 5,000, plus the unpaid 80 rent and 100 keep.
+        assertEquals(5_400 + 80 + after.livingCostPerDay, after.debtRupees)
     }
 
     @Test
-    fun `empty godowns cost nothing`() {
+    fun `empty godowns cost nothing but the rails still cost your keep`() {
         val after = done(Game.applyQuietly(start, Action.Travel(DELHI)))
-        assertEquals(start.cashRupees, after.cashRupees)
+        assertEquals(start.cashRupees - after.livingCostPerDay, after.cashRupees)
     }
 
     @Test
@@ -135,6 +136,10 @@ class GodownsTest {
             godowns = mapOf(MUMBAI to mapOf(ONIONS to 10)),
         )
         val held = Game.applyEvent(parked, GameEvent.Bandh(extraDays = 1))
-        assertEquals(10_000 - GameConstants.GODOWN_DAILY_RENT_RUPEES, held.cashRupees)
+        // A day's rent on the stash plus a day's keep in the city you're stuck in.
+        assertEquals(
+            10_000 - GameConstants.GODOWN_DAILY_RENT_RUPEES - held.livingCostPerDay,
+            held.cashRupees,
+        )
     }
 }

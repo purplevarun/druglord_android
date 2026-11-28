@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.purplevarun.trader.R
 import com.purplevarun.trader.engine.RunState
@@ -27,7 +28,7 @@ import java.util.Locale
  * The story scrolls if it must; the next-run button is pinned to the bottom.
  */
 @Composable
-fun EndScreen(run: RunState, onNewRun: () -> Unit, modifier: Modifier = Modifier) {
+fun EndScreen(run: RunState, ending: Ending, onNewRun: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxSize()
@@ -63,11 +64,17 @@ fun EndScreen(run: RunState, onNewRun: () -> Unit, modifier: Modifier = Modifier
             )
             Spacer(Modifier.height(UiDimens.EndScreenGap))
             BasicText(
-                text = if (run.isEndless) {
-                    stringResource(R.string.end_days_endless, run.day)
-                } else {
-                    stringResource(R.string.day_of_run, run.day, run.runLengthDays)
-                },
+                text = stringResource(
+                    when (ending) {
+                        Ending.RETIRED -> R.string.ending_retired
+                        Ending.BROKE -> R.string.ending_broke
+                        Ending.COLLECTED -> R.string.ending_collected
+                    },
+                ),
+                style = UiType.Body,
+            )
+            BasicText(
+                text = pluralStringResource(R.plurals.days_on_rails, run.day, run.day),
                 style = UiType.Body,
             )
             BasicText(

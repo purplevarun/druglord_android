@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             val store = remember { RunStore(applicationContext) }
             GameScreen(
                 store = store,
-                newRun = { days -> RunState.newRun(seed = System.nanoTime(), runLengthDays = days) },
+                newRun = { RunState.newRun(seed = System.nanoTime()) },
             )
         }
     }

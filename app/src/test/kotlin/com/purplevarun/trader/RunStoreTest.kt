@@ -25,10 +25,10 @@ class RunStoreTest {
     private val run = RunState(
         seed = 42,
         day = 12,
-        runLengthDays = 90,
         city = CityId.DELHI,
         cashRupees = 42_000,
         debtRupees = 5_000,
+        debtDueDay = 22,
         bankRupees = 8_000,
         transport = TransportId.TRUNK,
         rngRolls = 7,
@@ -132,6 +132,59 @@ class RunStoreTest {
     }
 
     @Test
+    fun `a run saved before the collector still loads, with a fresh clock on its debt`() {
+        // What format version 4 wrote: godowns and all, no collector deadline.
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("runs", 0)
+            .edit()
+            .putInt("version", 4)
+            .putBoolean("run.present", true)
+            .putLong("run.seed", 42)
+            .putInt("run.day", 12)
+            .putInt("run.length", 90)
+            .putString("run.city", "DELHI")
+            .putLong("run.cash", 42_000)
+            .putLong("run.debt", 5_000)
+            .putLong("run.bank", 8_000)
+            .putString("run.transport", "TRUNK")
+            .putLong("run.rng", 7)
+            .putString("run.shifts", "MUMBAI:ONIONS:2500")
+            .putString("run.godowns", "DELHI>KESAR:2")
+            .putString("run.holdings", "ONIONS:3,GOLD:1")
+            .commit()
+
+        val loaded = store.loadRun()!!
+
+        // Its debt gets ten days from when it was saved, and no last day hangs over it.
+        assertEquals(12 + GameConstants.COLLECTOR_AFTER_DAYS, loaded.debtDueDay)
+        assertEquals(2, loaded.stored(CityId.DELHI, GoodId.KESAR))
+    }
+
+    @Test
+    fun `a debt-free run saved before the collector loads with no clock`() {
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("runs", 0)
+            .edit()
+            .putInt("version", 4)
+            .putBoolean("run.present", true)
+            .putLong("run.seed", 42)
+            .putInt("run.day", 12)
+            .putInt("run.length", 90)
+            .putString("run.city", "DELHI")
+            .putLong("run.cash", 42_000)
+            .putLong("run.debt", 0)
+            .putLong("run.bank", 8_000)
+            .putString("run.transport", "TRUNK")
+            .putLong("run.rng", 7)
+            .putString("run.shifts", "")
+            .putString("run.godowns", "")
+            .putString("run.holdings", "ONIONS:3")
+            .commit()
+
+        assertEquals(0, store.loadRun()!!.debtDueDay)
+    }
+
+    @Test
     fun `clearing the run removes it but keeps the best runs`() {
         store.saveRun(run)
         store.recordRun(run)
@@ -162,12 +215,10 @@ class RunStoreTest {
     }
 
     @Test
-    fun `a recorded run remembers its length and how far it got`() {
-        val endlessDay400 = run.copy(runLengthDays = GameConstants.ENDLESS_RUN_LENGTH_DAYS, day = 400)
-        store.recordRun(endlessDay400)
+    fun `a recorded run remembers how far it got`() {
+        store.recordRun(run.copy(day = 400))
 
         val best = store.bestRuns().single()
-        assertEquals(GameConstants.ENDLESS_RUN_LENGTH_DAYS, best.runLengthDays)
         assertEquals(400, best.daysPlayed)
     }
 }
