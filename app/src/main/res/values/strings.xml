@@ -96,6 +96,14 @@
     <string name="take_all">Take all %1$s</string>
     <string name="sell_stored_all">Sell all %1$s from the godown</string>
 
+    <!-- The exact-amount keypad -->
+    <string name="exact_amount">exact</string>
+    <string name="exact_amount_label">type an exact amount</string>
+    <string name="keypad_delete">del</string>
+    <string name="buy_amount_units">Buy %1$d %2$s</string>
+    <string name="sell_amount_units">Sell %1$d %2$s</string>
+    <string name="sell_stored_amount">Sell %1$d %2$s from the godown</string>
+
     <!-- Travel -->
     <plurals name="trip_days">
         <item quantity="one">%1$d day by train</item>

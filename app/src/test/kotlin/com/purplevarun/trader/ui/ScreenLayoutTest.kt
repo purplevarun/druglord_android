@@ -57,6 +57,7 @@ class ScreenLayoutTest(private val case: Case) {
         BANK(TestTags.deposit(1_000), showsMap = true),
         LUGGAGE(TestTags.buyTransport(TransportId.TRUNK), showsMap = true),
         GODOWN(TestTags.GODOWN_CLOSE, showsMap = true),
+        KEYPAD(TestTags.AMOUNT_CONFIRM, showsMap = false),
         EVENT(TestTags.GOT_IT_EVENT, showsMap = true),
         COLLECTOR(TestTags.PAY_COLLECTOR, showsMap = true),
         BROKE(TestTags.BORROW_AGAIN, showsMap = true),
@@ -73,6 +74,7 @@ class ScreenLayoutTest(private val case: Case) {
             BANK -> Phase.Playing(run, Overlay.Bank)
             LUGGAGE -> Phase.Playing(run, Overlay.Luggage)
             GODOWN -> Phase.Playing(run, Overlay.Godown)
+            KEYPAD -> Phase.Playing(run, Overlay.Market, keypad = KeypadSpec.Market(GoodId.SILK_SAREES))
             EVENT -> Phase.Playing(
                 run,
                 Overlay.None,
@@ -181,6 +183,7 @@ class ScreenLayoutTest(private val case: Case) {
                     bestRuns = CROWDED_BEST_RUNS,
                     onAction = {},
                     onOverlayChange = {},
+                    onKeypad = {},
                     onEventDismissed = {},
                     onStartRun = {},
                     onEndRun = {},

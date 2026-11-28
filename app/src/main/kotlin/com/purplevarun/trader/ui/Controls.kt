@@ -2,7 +2,9 @@ package com.purplevarun.trader.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -23,6 +25,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 
 /** A − or + in a circle. The circle is drawn smaller than the 48 dp area that takes the tap. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RoundButton(
     symbol: String,
@@ -30,12 +33,18 @@ fun RoundButton(
     filled: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Box(
         Modifier
             .size(UiDimens.MinTouchTarget)
             .semantics { contentDescription = label }
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+            .combinedClickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         val face = if (filled) UiColors.Ink else UiColors.Paper
@@ -91,6 +100,7 @@ fun TextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier)
 }
 
 /** An outlined chip for one amount or one choice, as in the facility sheets. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AmountChip(
     text: String,
@@ -98,6 +108,7 @@ fun AmountChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     label: String? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(UiDimens.ButtonCorner)
     Box(
@@ -108,7 +119,13 @@ fun AmountChip(
             .alpha(if (enabled) 1f else UiType.DISABLED_ALPHA)
             .background(UiColors.Paper)
             .border(UiDimens.ChipBorder, UiColors.Line, shape)
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
+            .combinedClickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClickLabel = label,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
             .padding(
                 horizontal = UiDimens.ChipPaddingHorizontal,
                 vertical = UiDimens.ChipPaddingVertical,

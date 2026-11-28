@@ -285,6 +285,9 @@ object TestTags {
     const val BROKE_SHEET = "brokeSheet"
     const val BORROW_AGAIN = "borrowAgain"
     const val MEET_FATE = "meetFate"
+    const val KEYPAD_SHEET = "keypadSheet"
+    const val AMOUNT_CONFIRM = "amountConfirm"
+    const val AMOUNT_CONFIRM_2 = "amountConfirm2"
 
     fun store(good: com.purplevarun.trader.engine.GoodId, units: Int) = "store_${good.name}_$units"
     fun storeAll(good: com.purplevarun.trader.engine.GoodId) = "store_${good.name}_all"
@@ -293,6 +296,8 @@ object TestTags {
     fun sellAllStored(good: com.purplevarun.trader.engine.GoodId) = "sellStored_${good.name}_all"
 
     fun cityLabel(city: com.purplevarun.trader.engine.CityId) = "city_${city.name}"
+    fun exact(surface: String) = "exact_$surface"
+    fun key(digit: String) = "key_$digit"
     fun borrow(amountRupees: Long) = "borrow_$amountRupees"
     fun repay(amountRupees: Long) = "repay_$amountRupees"
     fun deposit(amountRupees: Long) = "deposit_$amountRupees"

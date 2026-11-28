@@ -488,6 +488,82 @@ class GameFlowTest {
     }
 
     @Test
+    fun `holding a market button opens the keypad and buys the amount typed`() {
+        start()
+        openMarket()
+
+        compose.onNodeWithContentDescription("Buy one Onions")
+            .performSemanticsAction(SemanticsActions.OnLongClick)
+
+        compose.onNodeWithTag(TestTags.KEYPAD_SHEET).assertExists()
+        // Nothing typed yet, so nothing can be confirmed.
+        compose.onNodeWithTag(TestTags.AMOUNT_CONFIRM).assertIsNotEnabled()
+
+        // More than the pocket holds: the button stays dark.
+        compose.onNodeWithTag(TestTags.key("2")).performClick()
+        compose.onNodeWithTag(TestTags.key("0")).performClick()
+        compose.onNodeWithTag(TestTags.key("0")).performClick()
+        compose.onNodeWithTag(TestTags.AMOUNT_CONFIRM).assertIsNotEnabled()
+
+        compose.onNodeWithTag(TestTags.key("del")).performClick()
+        compose.onNodeWithText("Buy 20 Onions").assertExists()
+        compose.onNodeWithTag(TestTags.AMOUNT_CONFIRM).performClick()
+        settleEvents()
+
+        compose.onNodeWithText("quintal · 20 held").assertExists()
+
+        compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithTag(TestTags.KEYPAD_SHEET).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the exact chip on a good opens the keypad too`() {
+        start()
+        openMarket()
+
+        compose.onNodeWithTag(TestTags.exact("market_ONIONS")).performClick()
+
+        compose.onNodeWithTag(TestTags.KEYPAD_SHEET).assertExists()
+        compose.onNodeWithText("0 quintal").assertExists()
+    }
+
+    @Test
+    fun `the keypad lends an exact amount`() {
+        start(newRun.copy(debtRupees = 0, debtDueDay = 0))
+        compose.onNodeWithTag(TestTags.PLACE_SAHUKAR).performClick()
+
+        compose.onNodeWithTag(TestTags.exact("money_BORROW")).performClick()
+        compose.onNodeWithTag(TestTags.key("7")).performClick()
+        compose.onNodeWithTag(TestTags.key("5")).performClick()
+        compose.onNodeWithTag(TestTags.key("0")).performClick()
+        compose.onNodeWithTag(TestTags.key("0")).performClick()
+
+        compose.onNodeWithText("Borrow ₹7,500").assertExists()
+        compose.onNodeWithTag(TestTags.AMOUNT_CONFIRM).performClick()
+        settleEvents()
+
+        compose.onNodeWithText("You owe ₹7,500").assertExists()
+    }
+
+    @Test
+    fun `the godown stores exactly what is typed`() {
+        val loaded = RunState.newRun(seed = 42).copy(holdings = mapOf(GoodId.ONIONS to 50))
+        start(loaded)
+        compose.onNodeWithTag(TestTags.PLACE_GODOWN).performClick()
+
+        compose.onNodeWithTag(TestTags.exact("godown_ONIONS_STORE")).performClick()
+        compose.onNodeWithTag(TestTags.key("3")).performClick()
+        compose.onNodeWithTag(TestTags.key("0")).performClick()
+
+        compose.onNodeWithText("Store 30 Onions").assertExists()
+        compose.onNodeWithTag(TestTags.AMOUNT_CONFIRM).performClick()
+        settleEvents()
+
+        compose.onNodeWithText("Onions · 30 stored").assertExists()
+        compose.onNodeWithText("Onions · 20 carried").assertExists()
+    }
+
+    @Test
     fun `news on the price shows in the mandi`() {
         val shifted = newRun.copy(
             priceShifts = listOf(PriceShift(CityId.MUMBAI, GoodId.ONIONS, 5_000)),

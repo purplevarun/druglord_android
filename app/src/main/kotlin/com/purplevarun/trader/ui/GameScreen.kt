@@ -37,6 +37,7 @@ sealed interface Phase {
         val run: RunState,
         val overlay: Overlay,
         val pendingEvents: List<GameEvent> = emptyList(),
+        val keypad: KeypadSpec? = null,
     ) : Phase
     data class Ended(val run: RunState, val ending: Ending) : Phase
 }
@@ -72,8 +73,10 @@ fun GameScreen(store: RunStore, newRun: () -> RunState) {
     }
 
     val playing = phase as? Phase.Playing
-    BackHandler(enabled = playing != null && playing.overlay != Overlay.None) {
-        playing?.let { phase = it.copy(overlay = Overlay.None) }
+    BackHandler(enabled = playing != null && (playing.overlay != Overlay.None || playing.keypad != null)) {
+        playing?.let {
+            phase = if (it.keypad != null) it.copy(keypad = null) else it.copy(overlay = Overlay.None)
+        }
     }
 
     GameScreenContent(
@@ -91,6 +94,9 @@ fun GameScreen(store: RunStore, newRun: () -> RunState) {
         },
         onOverlayChange = { overlay ->
             (phase as? Phase.Playing)?.let { phase = it.copy(overlay = overlay) }
+        },
+        onKeypad = { spec ->
+            (phase as? Phase.Playing)?.let { phase = it.copy(keypad = spec) }
         },
         onEventDismissed = {
             (phase as? Phase.Playing)?.let { phase = it.copy(pendingEvents = it.pendingEvents.drop(1)) }
@@ -114,6 +120,7 @@ fun GameScreenContent(
     bestRuns: List<BestRun>,
     onAction: (Action) -> Unit,
     onOverlayChange: (Overlay) -> Unit,
+    onKeypad: (KeypadSpec?) -> Unit,
     onEventDismissed: () -> Unit,
     onStartRun: () -> Unit,
     onEndRun: (Ending) -> Unit,
@@ -130,6 +137,7 @@ fun GameScreenContent(
                         state = run,
                         onBuy = { onAction(Action.Buy(it, 1)) },
                         onSell = { onAction(Action.Sell(it, 1)) },
+                        onExact = { onKeypad(KeypadSpec.Market(it)) },
                         onClose = { onOverlayChange(Overlay.None) },
                     )
                 } else {
@@ -161,11 +169,13 @@ fun GameScreenContent(
                     Overlay.Sahukar -> SahukarSheet(
                         state = run,
                         onAction = onAction,
+                        onExact = onKeypad,
                         onDismiss = { onOverlayChange(Overlay.None) },
                     )
                     Overlay.Bank -> BankSheet(
                         state = run,
                         onAction = onAction,
+                        onExact = onKeypad,
                         onDismiss = { onOverlayChange(Overlay.None) },
                     )
                     Overlay.Luggage -> LuggageSheet(
@@ -176,6 +186,7 @@ fun GameScreenContent(
                     Overlay.Godown -> GodownSheet(
                         state = run,
                         onAction = onAction,
+                        onExact = onKeypad,
                         onDismiss = { onOverlayChange(Overlay.None) },
                     )
                     Overlay.EndRun -> EndRunSheet(
@@ -185,8 +196,17 @@ fun GameScreenContent(
                     )
                     else -> {}
                 }
-                // What the day brought is told on top of whatever else is open, and what
-                // the day demands — the collector, then the end of options — on top of that.
+                // The keypad floats over the screen or sheet it was opened from; what the
+                // day brought is told on top of that, and what the day demands — the
+                // collector, then the end of options — on top of everything.
+                phase.keypad?.let { spec ->
+                    AmountSheet(
+                        state = run,
+                        spec = spec,
+                        onAction = onAction,
+                        onDismiss = { onKeypad(null) },
+                    )
+                }
                 phase.pendingEvents.firstOrNull()?.let { event ->
                     EventSheet(
                         event = event,
@@ -221,15 +241,20 @@ private val PhaseSaver = listSaver<Phase, Any>(
     save = { phase ->
         when (phase) {
             Phase.NewRun -> listOf(PHASE_NEW_RUN)
-            is Phase.Playing -> listOf<Any>(PHASE_PLAYING, overlayToString(phase.overlay)) + runToFields(phase.run)
+            is Phase.Playing -> listOf<Any>(
+                PHASE_PLAYING,
+                overlayToString(phase.overlay),
+                keypadToString(phase.keypad),
+            ) + runToFields(phase.run)
             is Phase.Ended -> listOf<Any>(PHASE_ENDED, phase.ending.name) + runToFields(phase.run)
         }
     },
     restore = { saved ->
         when (saved[0]) {
             PHASE_PLAYING -> Phase.Playing(
-                run = fieldsToRun(saved.drop(2)),
+                run = fieldsToRun(saved.drop(3)),
                 overlay = stringToOverlay(saved[1] as String),
+                keypad = stringToKeypad(saved[2] as String),
             )
             PHASE_ENDED -> Phase.Ended(fieldsToRun(saved.drop(2)), Ending.valueOf(saved[1] as String))
             else -> Phase.NewRun
@@ -259,6 +284,25 @@ private fun stringToOverlay(saved: String): Overlay = when {
     saved == "endRun" -> Overlay.EndRun
     saved.startsWith(TRAVEL_PREFIX) -> Overlay.Travel(CityId.valueOf(saved.removePrefix(TRAVEL_PREFIX)))
     else -> Overlay.None
+}
+
+private const val KEYPAD_PREFIX = "keypad:"
+
+private fun keypadToString(spec: KeypadSpec?): String = when (spec) {
+    null -> KEYPAD_PREFIX + "none"
+    is KeypadSpec.Market -> KEYPAD_PREFIX + "market:" + spec.good.name
+    is KeypadSpec.Money -> KEYPAD_PREFIX + "money:" + spec.verb.name
+    is KeypadSpec.Godown -> KEYPAD_PREFIX + "godown:" + spec.good.name + ":" + spec.verb.name
+}
+
+private fun stringToKeypad(saved: String): KeypadSpec? {
+    val parts = saved.removePrefix(KEYPAD_PREFIX).split(":")
+    return when (parts[0]) {
+        "market" -> KeypadSpec.Market(GoodId.valueOf(parts[1]))
+        "money" -> KeypadSpec.Money(MoneyVerb.valueOf(parts[1]))
+        "godown" -> KeypadSpec.Godown(GoodId.valueOf(parts[1]), GodownVerb.valueOf(parts[2]))
+        else -> null
+    }
 }
 
 private fun runToFields(run: RunState): List<Any> = listOf<Any>(

@@ -30,7 +30,14 @@ import com.purplevarun.trader.engine.RunState
  * lend or take back in a tap.
  */
 @Composable
-fun SahukarSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit) {
+fun SahukarSheet(
+    state: RunState,
+    onAction: (Action) -> Unit,
+    onExact: (KeypadSpec) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val borrowExact = { onExact(KeypadSpec.Money(MoneyVerb.BORROW)) }
+    val repayExact = { onExact(KeypadSpec.Money(MoneyVerb.REPAY)) }
     Sheet(
         onDismiss = onDismiss,
         testTag = TestTags.SAHUKAR_SHEET,
@@ -52,24 +59,34 @@ fun SahukarSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
             )
         },
         actions = {
-            AmountRow(verb = stringResource(R.string.action_borrow)) {
+            AmountRow(
+                verb = stringResource(R.string.action_borrow),
+                onExact = borrowExact,
+                exactTag = "money_BORROW",
+            ) {
                 for (step in GameConstants.TRANSACTION_STEPS_RUPEES) {
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.borrow_amount, formatRupees(step)),
                         enabled = Game.check(state, Action.Borrow(step)) == null,
                         onClick = { onAction(Action.Borrow(step)) },
+                        onLongClick = borrowExact,
                         modifier = Modifier.testTag(TestTags.borrow(step)),
                     )
                 }
             }
-            AmountRow(verb = stringResource(R.string.action_repay)) {
+            AmountRow(
+                verb = stringResource(R.string.action_repay),
+                onExact = repayExact,
+                exactTag = "money_REPAY",
+            ) {
                 for (step in GameConstants.TRANSACTION_STEPS_RUPEES) {
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.repay_amount, formatRupees(step)),
                         enabled = Game.check(state, Action.Repay(step)) == null,
                         onClick = { onAction(Action.Repay(step)) },
+                        onLongClick = repayExact,
                         modifier = Modifier.testTag(TestTags.repay(step)),
                     )
                 }
@@ -79,6 +96,7 @@ fun SahukarSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
                     label = stringResource(R.string.repay_all, formatRupees(all)),
                     enabled = all > 0,
                     onClick = { onAction(Action.Repay(all)) },
+                    onLongClick = repayExact,
                     modifier = Modifier.testTag(TestTags.REPAY_ALL),
                 )
             }
@@ -96,7 +114,14 @@ fun SahukarSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
  * Savings travel with the account, not the pocket: they are safe wherever you are.
  */
 @Composable
-fun BankSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit) {
+fun BankSheet(
+    state: RunState,
+    onAction: (Action) -> Unit,
+    onExact: (KeypadSpec) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val depositExact = { onExact(KeypadSpec.Money(MoneyVerb.DEPOSIT)) }
+    val withdrawExact = { onExact(KeypadSpec.Money(MoneyVerb.WITHDRAW)) }
     Sheet(
         onDismiss = onDismiss,
         testTag = TestTags.BANK_SHEET,
@@ -118,13 +143,18 @@ fun BankSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit
             )
         },
         actions = {
-            AmountRow(verb = stringResource(R.string.action_deposit)) {
+            AmountRow(
+                verb = stringResource(R.string.action_deposit),
+                onExact = depositExact,
+                exactTag = "money_DEPOSIT",
+            ) {
                 for (step in GameConstants.TRANSACTION_STEPS_RUPEES) {
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.deposit_amount, formatRupees(step)),
                         enabled = Game.check(state, Action.Deposit(step)) == null,
                         onClick = { onAction(Action.Deposit(step)) },
+                        onLongClick = depositExact,
                         modifier = Modifier.testTag(TestTags.deposit(step)),
                     )
                 }
@@ -133,16 +163,22 @@ fun BankSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit
                     label = stringResource(R.string.deposit_all, formatRupees(state.cashRupees)),
                     enabled = state.cashRupees > 0,
                     onClick = { onAction(Action.Deposit(state.cashRupees)) },
+                    onLongClick = depositExact,
                     modifier = Modifier.testTag(TestTags.DEPOSIT_ALL),
                 )
             }
-            AmountRow(verb = stringResource(R.string.action_withdraw)) {
+            AmountRow(
+                verb = stringResource(R.string.action_withdraw),
+                onExact = withdrawExact,
+                exactTag = "money_WITHDRAW",
+            ) {
                 for (step in GameConstants.TRANSACTION_STEPS_RUPEES) {
                     AmountChip(
                         text = formatRupees(step),
                         label = stringResource(R.string.withdraw_amount, formatRupees(step)),
                         enabled = Game.check(state, Action.Withdraw(step)) == null,
                         onClick = { onAction(Action.Withdraw(step)) },
+                        onLongClick = withdrawExact,
                         modifier = Modifier.testTag(TestTags.withdraw(step)),
                     )
                 }
@@ -151,6 +187,7 @@ fun BankSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit
                     label = stringResource(R.string.withdraw_all, formatRupees(state.bankRupees)),
                     enabled = state.bankRupees > 0,
                     onClick = { onAction(Action.Withdraw(state.bankRupees)) },
+                    onLongClick = withdrawExact,
                     modifier = Modifier.testTag(TestTags.WITHDRAW_ALL),
                 )
             }
@@ -236,7 +273,12 @@ fun LuggageSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> U
  * never touched from afar.
  */
 @Composable
-fun GodownSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Unit) {
+fun GodownSheet(
+    state: RunState,
+    onAction: (Action) -> Unit,
+    onExact: (KeypadSpec) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val storedHere = state.godowns[state.city].orEmpty()
     Sheet(
         onDismiss = onDismiss,
@@ -272,13 +314,20 @@ fun GodownSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Un
                         stringResource(R.string.stored_count, stringResource(goodNameRes(good)), quantity),
                         style = UiType.GoodName,
                     )
-                    AmountRow(verb = stringResource(R.string.action_take)) {
+                    val takeExact = { onExact(KeypadSpec.Godown(good, GodownVerb.TAKE)) }
+                    val sellExact = { onExact(KeypadSpec.Godown(good, GodownVerb.SELL)) }
+                    AmountRow(
+                        verb = stringResource(R.string.action_take),
+                        onExact = takeExact,
+                        exactTag = "godown_${good.name}_TAKE",
+                    ) {
                         for (units in GameConstants.GODOWN_STEPS_UNITS) {
                             AmountChip(
                                 text = "$units",
                                 label = stringResource(R.string.take_units, units, stringResource(goodNameRes(good))),
                                 enabled = Game.check(state, Action.Retrieve(good, units)) == null,
                                 onClick = { onAction(Action.Retrieve(good, units)) },
+                                onLongClick = takeExact,
                                 modifier = Modifier.testTag(TestTags.take(good, units)),
                             )
                         }
@@ -287,15 +336,21 @@ fun GodownSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Un
                             label = stringResource(R.string.take_all, stringResource(goodNameRes(good))),
                             enabled = Game.check(state, Action.Retrieve(good, quantity)) == null,
                             onClick = { onAction(Action.Retrieve(good, quantity)) },
+                            onLongClick = takeExact,
                             modifier = Modifier.testTag(TestTags.takeAll(good)),
                         )
                     }
-                    AmountRow(verb = stringResource(R.string.action_sell)) {
+                    AmountRow(
+                        verb = stringResource(R.string.action_sell),
+                        onExact = sellExact,
+                        exactTag = "godown_${good.name}_SELL",
+                    ) {
                         AmountChip(
                             text = stringResource(R.string.action_all),
                             label = stringResource(R.string.sell_stored_all, stringResource(goodNameRes(good))),
                             enabled = Game.check(state, Action.SellStored(good, quantity)) == null,
                             onClick = { onAction(Action.SellStored(good, quantity)) },
+                            onLongClick = sellExact,
                             modifier = Modifier.testTag(TestTags.sellAllStored(good)),
                         )
                     }
@@ -317,13 +372,19 @@ fun GodownSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Un
                         stringResource(R.string.carried_count, stringResource(goodNameRes(good)), quantity),
                         style = UiType.GoodName,
                     )
-                    AmountRow(verb = stringResource(R.string.action_store)) {
+                    val storeExact = { onExact(KeypadSpec.Godown(good, GodownVerb.STORE)) }
+                    AmountRow(
+                        verb = stringResource(R.string.action_store),
+                        onExact = storeExact,
+                        exactTag = "godown_${good.name}_STORE",
+                    ) {
                         for (units in GameConstants.GODOWN_STEPS_UNITS) {
                             AmountChip(
                                 text = "$units",
                                 label = stringResource(R.string.store_units, units, stringResource(goodNameRes(good))),
                                 enabled = Game.check(state, Action.Store(good, units)) == null,
                                 onClick = { onAction(Action.Store(good, units)) },
+                                onLongClick = storeExact,
                                 modifier = Modifier.testTag(TestTags.store(good, units)),
                             )
                         }
@@ -332,6 +393,7 @@ fun GodownSheet(state: RunState, onAction: (Action) -> Unit, onDismiss: () -> Un
                             label = stringResource(R.string.store_all, stringResource(goodNameRes(good))),
                             enabled = Game.check(state, Action.Store(good, quantity)) == null,
                             onClick = { onAction(Action.Store(good, quantity)) },
+                            onLongClick = storeExact,
                             modifier = Modifier.testTag(TestTags.storeAll(good)),
                         )
                     }
@@ -386,7 +448,12 @@ private fun elsewhereSummary(elsewhere: Map<CityId, Map<GoodId, Int>>): String {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AmountRow(verb: String, chips: @Composable FlowRowScope.() -> Unit) {
+private fun AmountRow(
+    verb: String,
+    onExact: (() -> Unit)? = null,
+    exactTag: String? = null,
+    chips: @Composable FlowRowScope.() -> Unit,
+) {
     FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(UiDimens.ChipGap),
@@ -398,6 +465,15 @@ private fun AmountRow(verb: String, chips: @Composable FlowRowScope.() -> Unit) 
             modifier = Modifier.align(Alignment.CenterVertically),
         )
         chips()
+        if (onExact != null) {
+            AmountChip(
+                text = stringResource(R.string.exact_amount),
+                label = stringResource(R.string.exact_amount_label),
+                enabled = true,
+                onClick = onExact,
+                modifier = Modifier.testTag(TestTags.exact(exactTag.orEmpty())),
+            )
+        }
     }
 }
 

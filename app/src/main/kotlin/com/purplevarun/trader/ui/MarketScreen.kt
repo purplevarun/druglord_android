@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -42,6 +42,7 @@ fun MarketScreen(
     state: RunState,
     onBuy: (GoodId) -> Unit,
     onSell: (GoodId) -> Unit,
+    onExact: (GoodId) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,7 +75,7 @@ fun MarketScreen(
         Divider()
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             for (good in GameConstants.GOODS) {
-                MarketRow(state, good, onBuy, onSell)
+                MarketRow(state, good, onBuy, onSell, onExact)
                 Divider()
             }
         }
@@ -100,7 +101,13 @@ fun MarketScreen(
 }
 
 @Composable
-private fun MarketRow(state: RunState, good: Good, onBuy: (GoodId) -> Unit, onSell: (GoodId) -> Unit) {
+private fun MarketRow(
+    state: RunState,
+    good: Good,
+    onBuy: (GoodId) -> Unit,
+    onSell: (GoodId) -> Unit,
+    onExact: (GoodId) -> Unit,
+) {
     val name = stringResource(goodNameRes(good.id))
     val unit = stringResource(unitNameRes(good.unit))
     val held = state.held(good.id)
@@ -126,26 +133,35 @@ private fun MarketRow(state: RunState, good: Good, onBuy: (GoodId) -> Unit, onSe
             }
         },
         trade = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(horizontalAlignment = Alignment.End) {
-                    BasicText(formatRupees(state.priceOf(good.id)), style = UiType.Price)
-                    ChangeText(state.changePercentOf(good.id))
+            Column(horizontalAlignment = Alignment.End) {
+                BasicText(formatRupees(state.priceOf(good.id)), style = UiType.Price)
+                ChangeText(state.changePercentOf(good.id))
+                Spacer(Modifier.height(UiDimens.RowStackGap))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RoundButton(
+                        symbol = "−",
+                        label = stringResource(R.string.sell_one, name),
+                        filled = false,
+                        enabled = canSell,
+                        onClick = { onSell(good.id) },
+                        onLongClick = { onExact(good.id) },
+                    )
+                    AmountChip(
+                        text = stringResource(R.string.exact_amount),
+                        label = stringResource(R.string.exact_amount_label),
+                        enabled = true,
+                        onClick = { onExact(good.id) },
+                        modifier = Modifier.testTag(TestTags.exact("market_${good.id.name}")),
+                    )
+                    RoundButton(
+                        symbol = "+",
+                        label = stringResource(R.string.buy_one, name),
+                        filled = true,
+                        enabled = canBuy,
+                        onClick = { onBuy(good.id) },
+                        onLongClick = { onExact(good.id) },
+                    )
                 }
-                Spacer(Modifier.width(UiDimens.PriceToButtonsGap))
-                RoundButton(
-                    symbol = "−",
-                    label = stringResource(R.string.sell_one, name),
-                    filled = false,
-                    enabled = canSell,
-                    onClick = { onSell(good.id) },
-                )
-                RoundButton(
-                    symbol = "+",
-                    label = stringResource(R.string.buy_one, name),
-                    filled = true,
-                    enabled = canBuy,
-                    onClick = { onBuy(good.id) },
-                )
             }
         },
     )
