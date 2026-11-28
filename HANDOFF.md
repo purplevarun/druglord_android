@@ -203,7 +203,9 @@ X days and if u dont pay them back they will kill u."
 - **Tuning I chose, never confirmed by the user:** ₹10,000 starting cash, ₹5,000 debt, 100
   luggage slots with every unit taking one slot, the city price table and each good's
   volatility, the living-cost table (₹60–₹120/city), the ten-day collector clock, the ₹5,000
-  survival loan, 500-unit godowns at ₹50/day.
+  survival loan, the ₹50,000 borrow cap, 500-unit godowns at ₹50/day, transport prices
+  ₹6k/₹25k/₹90k. The balance pass (`e142d36`) tuned the spreads and transport prices against
+  a bot simulation; the bands it asserts live in `BalanceTest`.
 - **The mockup is fully built.** The game is named **Saudagar**; balance is all that remains
   before releases.
 - **Saved-state format is v6.** `RunStore` reads v1–v5 (v4 debts get a fresh ten-day clock,
@@ -242,8 +244,11 @@ then a check on the emulator, then commit and push to `main`.
    `purplevarun/saudagar_android`; goods/ranks unchanged; `applicationId` unchanged. The local
    dir is still `druglord_android` on disk — renaming the working directory was deliberately
    skipped; do it between sessions if wanted.
-9. **Balance pass:** use the simulation to tune prices and risk, and verify the estimated
-   prices. Now bigger: living costs vs profit margins, the 10-day clock, the survival loan.
+9. ~~Balance pass.~~ **Done** in `e142d36` (issue #9): `BalanceTest` plays 300 seeded runs of
+   decent casual play and pins the tuned feel. Also shipped engine fixes it exposed:
+   PayCollector settles debt + keep atomically, passive debt gets a deadline, borrowing is
+   capped at ₹50,000, `maxBuyable` prices post-shift. Factor spreads compressed to ~0.75–1.25,
+   transports ₹6k/₹25k/₹90k, chai marked SOURCED (₹60–103/kg, 2000 Calcutta auctions).
 10. **Releases:** version numbering and a script that builds the signed APK and attaches it to
     a GitHub release.
 
@@ -286,6 +291,11 @@ the earlier notes describe.
 - **Git remote is HTTPS, not SSH.** The Mac's SSH key belongs to `ritika-tw`, who has no access;
   pushes authenticate as `purplevarun` through `gh`'s credential helper. Setting the remote to a
   `git@github.com:` URL breaks pushes (hit once during the repo rename).
+- **Balance harness is the tuning instrument.** `BalanceTest` in engine tests plays a bot over
+  300 fixed seeds and prints a report (survival, wealth curve, endings, cash flows) to the
+  test's `system-out`. Tune `GameConstants`, re-run `./gradlew :engine:test`, read
+  `engine/build/test-results/test/TEST-...BalanceTest.xml`. Set `TRACE_ONE` true to narrate
+  one run move by move — the only way several bot-pathology bugs were found.
 
 ## Suggested skills
 
